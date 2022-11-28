@@ -10,15 +10,15 @@ from subprocess import check_output
 
 import requests
 
-import python3_pip_skeleton
+import dls_response_matrix
 
 # -- General configuration ------------------------------------------------
 
 # General information about the project.
-project = "python3-pip-skeleton"
+project = "dls-response-matrix"
 
 # The full version, including alpha/beta/rc tags.
-release = python3_pip_skeleton.__version__
+release = dls_response_matrix.__version__
 
 # The short X.Y version.
 if "+" in release:

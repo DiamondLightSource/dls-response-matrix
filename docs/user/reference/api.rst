@@ -1,14 +1,14 @@
 API
 ===
 
-.. automodule:: python3_pip_skeleton
+.. automodule:: dls_response_matrix
 
-    ``python3_pip_skeleton``
+    ``dls_response_matrix``
     -----------------------------------
 
-This is the internal API reference for python3_pip_skeleton
+This is the internal API reference for dls_response_matrix
 
-.. data:: python3_pip_skeleton.__version__
+.. data:: dls_response_matrix.__version__
     :type: str
 
     Version number as calculated by https://github.com/pypa/setuptools_scm
