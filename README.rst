@@ -3,14 +3,7 @@ dls-response-matrix
 
 |code_ci| |docs_ci| |coverage| |pypi_version| |license|
 
-.. note::
-
-    This project contains template code only. For documentation on how to
-    adopt this skeleton project see
-    https://DiamondLightSource.github.io/dls-response-matrix-cli
-
-This is where you should write a short paragraph that describes what your module does,
-how it does it, and why people should use it.
+This package contains a response matrix generation module.
 
 ============== ==============================================================
 PyPI           ``pip install dls-response-matrix``
@@ -18,20 +11,6 @@ Source code    https://github.com/DiamondLightSource/dls-response-matrix
 Documentation  https://DiamondLightSource.github.io/dls-response-matrix
 Releases       https://github.com/DiamondLightSource/dls-response-matrix/releases
 ============== ==============================================================
-
-This is where you should put some images or code snippets that illustrate
-some relevant examples. If it is a library then you might put some
-introductory code here:
-
-.. code-block:: python
-
-    from dls_response_matrix import __version__
-
-    print(f"Hello dls_response_matrix {__version__}")
-
-Or if it is a commandline tool then you might put some example commands here::
-
-    $ python -m dls_response_matrix --version
 
 .. |code_ci| image:: https://github.com/DiamondLightSource/dls-response-matrix/actions/workflows/code.yml/badge.svg?branch=main
     :target: https://github.com/DiamondLightSource/dls-response-matrix/actions/workflows/code.yml
