@@ -1,5 +1,5 @@
-import sys
 from dataclasses import dataclass
+from pathlib import Path
 
 import cothread
 import pytac  # noqa
@@ -7,9 +7,9 @@ from PyQt5 import QtCore, QtWidgets, uic  # noqa
 
 from dls_response_matrix import response_matrix as rm
 
-_qapp = cothread.iqt(argv=sys.argv)  # noqa
+_qapp = cothread.iqt()
 
-UI_FILENAME = "responsematrix.ui"
+UI_FILENAME = Path(__file__).parent / "responsematrix.ui"
 
 
 @dataclass
@@ -58,7 +58,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.proposed_delta_input.setSingleStep((maximum - minimum) / 100)
 
     def progress_callback(self, progress):
-        self.progressBar.setValue(progress)
+        self.progressBar.setValue(int(progress))
 
     def reset_on_completion(self, process):
         process.Wait()
