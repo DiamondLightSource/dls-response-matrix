@@ -3,7 +3,7 @@ import json
 import os
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import List, NamedTuple
+from typing import List, NamedTuple, Tuple
 
 import cothread
 import matplotlib.pyplot as plt
@@ -78,7 +78,7 @@ class Config:
         )
 
     @staticmethod
-    def check_limits(proposed_delta: float, pytac_unit: str) -> float:
+    def check_limits(proposed_delta: float, pytac_unit: str) -> Tuple[float, str]:
         """Checks the limits and sets delta."""
         proposed_delta = float(proposed_delta)
         max_delta, min_delta, default_delta, pytac_formatted = DELTA_LIMITS[pytac_unit]

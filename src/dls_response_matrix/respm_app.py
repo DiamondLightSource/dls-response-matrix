@@ -14,7 +14,7 @@ UI_FILENAME = "responsematrix.ui"
 
 @dataclass
 class Definitions:
-    filename: str = None
+    filename: str = None  # type: ignore
     ring_mode: str = rm.DEFAULT_MACHINE_MODE
     machine_type: str = "SIM"
     pytac_unit: str = "pytac.ENG"
