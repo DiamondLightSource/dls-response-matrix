@@ -12,8 +12,15 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
 ]
-description = "One line description of your module"
-dependencies = [] # Add project dependencies here, e.g. ["click", "numpy"]
+description = "Generator of storage ring response matrix"
+dependencies = [
+    "epicscorelibs",
+    "cothread",
+    "matplotlib",
+    "numpy",
+    "pytac",
+    "PyQt5"
+]
 dynamic = ["version"]
 license.file = "LICENSE"
 readme = "README.rst"
@@ -62,6 +69,7 @@ extend-ignore = [
     "E203", # See https://github.com/PyCQA/pycodestyle/issues/373
     "F811", # support typing.overload decorator
     "F722", # allow Annotated[typ, some_func("some string")]
+    "E501", # ignore line length
 ]
 max-line-length = 88 # Respect black's line length (default 88),
 exclude = [".tox", "venv"]
@@ -74,9 +82,12 @@ addopts = """
     --cov=dls_response_matrix --cov-report term --cov-report xml:cov.xml
     """
 # https://iscinumpy.gitlab.io/post/bound-version-constraints/#watch-for-warnings
-filterwarnings = "error"
+filterwarnings = [
+    "error",
+    "ignore::DeprecationWarning"
+]
 # Doctest python code in docs, python code in src docstrings, test functions in tests
-testpaths = "docs src tests"
+testpaths = "docs tests"
 
 [tool.coverage.run]
 data_file = "/tmp/dls_response_matrix.coverage"
