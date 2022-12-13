@@ -45,6 +45,7 @@ dev = [
 
 [project.scripts]
 dls-response-matrix = "dls_response_matrix.__main__:main"
+dls-response-matrix-gui = "dls_response_matrix.__main__:gui_main"
 
 [project.urls]
 GitHub = "https://github.com/DiamondLightSource/dls-response-matrix"
