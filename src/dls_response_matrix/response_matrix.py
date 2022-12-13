@@ -30,9 +30,9 @@ MACHINE_SETUP = {
 
 
 def get_ring_modes():  # Needed for UI initialisation.
-    res = caget("SR-CS-RING-01:MODE", format=FORMAT_CTRL)
-    cur = caget("SR-CS-RING-01:MODE", datatype=str)
-    return res.enums, cur
+    ring_mode_list = caget("SR-CS-RING-01:MODE", format=FORMAT_CTRL).enums
+    current_ringmode = caget("SR-CS-RING-01:MODE", datatype=str)
+    return ring_mode_list, current_ringmode
 
 
 @dataclass
@@ -125,7 +125,7 @@ class Metadata:
             # Main metadata.
             "Filename": self.config.filename,
             "ISO time": self.config.iso_time,
-            "Lattice model:": self.config.ring_mode,
+            "Lattice model": self.config.ring_mode,
             "Machine type": self.config.machine_type,
             "Time delay": self.config.time_delay,
             "Delta": self.config.delta,
