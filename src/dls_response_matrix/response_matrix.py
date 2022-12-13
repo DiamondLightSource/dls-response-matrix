@@ -8,10 +8,11 @@ import cothread
 import matplotlib.pyplot as plt
 import numpy as np
 import pytac
-from cothread.catools import FORMAT_CTRL, caget
+from cothread.catools import FORMAT_CTRL, ca_nothing, caget
 from matplotlib.colors import TwoSlopeNorm
 
 DEFAULT_MACHINE_MODE = "I04"
+MAX_BPM_ATTEMPTS = 3
 
 DeltaLimits = NamedTuple(
     "DeltaLimits", [("max", float), ("min", float), ("default", float), ("pytac", str)]
@@ -213,12 +214,35 @@ class LatticeModel:
     def measure_bpms(self):
         """Measures all bpms in the lattice."""
         # Measures all BPMs (even disabled) for performance requirements.
+        # The try statement is to guard against caget failures.
         bpm_x = self._lattice.get_element_values(
             "BPM", "x", pytac.RB, self._config.pytac_unit
         )
         bpm_y = self._lattice.get_element_values(
             "BPM", "y", pytac.RB, self._config.pytac_unit
         )
+
+        for attempt in range(MAX_BPM_ATTEMPTS):
+            try:
+                bpm_x = self._lattice.get_element_values(
+                    "BPM", "x", pytac.RB, self._config.pytac_unit
+                )
+                bpm_y = self._lattice.get_element_values(
+                    "BPM", "y", pytac.RB, self._config.pytac_unit
+                )
+            except ca_nothing as e:
+                print(f"Failure no: {attempt + 1} to retrieve bpm values:\n{e}")
+                # log.error(f"Failure no: {attempt + 1} to retrieve bpm values:\n{e}")
+                if attempt < MAX_BPM_ATTEMPTS - 1:
+                    cothread.Sleep(1)
+                    continue
+                print(f"Failed to retrieve bpm values {MAX_BPM_ATTEMPTS} times:\n{e}")
+                # log.critical(f"Failed to retrieve bpm values {MAX_BPM_ATTEMPTS} times:\n{e}")
+                raise Exception(
+                    f"Failed to retrieve bpm values {MAX_BPM_ATTEMPTS} times:\n{e}"
+                )
+            else:
+                break
         return bpm_x + bpm_y
 
     def calculate_responses(self, results, progress_callback):
