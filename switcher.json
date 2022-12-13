@@ -2,5 +2,9 @@
   {
     "version": "main",
     "url": "https://DiamondLightSource.github.io/dls-response-matrix/main/"
+  },
+  {
+    "version": "improvements",
+    "url": "https://DiamondLightSource.github.io/dls-response-matrix/improvements/"
   }
 ]
