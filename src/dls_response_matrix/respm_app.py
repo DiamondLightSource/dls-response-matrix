@@ -27,9 +27,18 @@ class Definitions:
 
 
 class MainWindow(QtWidgets.QMainWindow):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, tooltips, *args, **kwargs):
         super().__init__(*args, **kwargs)
         uic.loadUi(UI_FILENAME, self)
+
+        self.filename_input.setToolTip(tooltips["filename"])
+        self.ring_mode_input.setToolTip(tooltips["ring-mode"])
+        self.proposed_delta_input.setToolTip(tooltips["proposed-delta"])
+        self.pytac_unit_input.setToolTip(tooltips["pytac-unit"])
+        self.machine_type_input.setToolTip(tooltips["machine-type"])
+        self.corrector_input.setToolTip(tooltips["remove-correctors"])
+        self.bpm_input.setToolTip(tooltips["remove-bpms"])
+        self.split_input.setToolTip(tooltips["split-graphs"])
 
         ring_modes, current_ring_mode = rm.get_ring_modes()
         self.ring_mode_input.addItems(ring_modes)
