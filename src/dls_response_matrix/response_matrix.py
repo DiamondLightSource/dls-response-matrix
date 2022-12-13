@@ -287,6 +287,28 @@ class LatticeModel:
             progress_callback(self.counter * 100)
 
 
+def load_csv(old_filename, new_filename=None):
+    if new_filename is None:
+        new_filename = old_filename
+    matrix = np.genfromtxt(f"RM-{old_filename}.csv")
+    with open(f"RM-{old_filename}-metadata.json") as f:
+        metadata = json.load(f)
+    config = Config(
+        new_filename,
+        metadata["ISO time"],
+        metadata["Pytac units"],
+        metadata["Lattice model"],
+        metadata["Machine type"],
+        0,
+    )
+    MAX_HSTR = 172
+    MAX_VSTR = 172
+    MAX_BPM = 137
+    results = Results(config, MAX_HSTR, MAX_VSTR, MAX_BPM)
+    results.load_init(matrix, config)
+    return results
+
+
 class Results:
     """The Results class handles the data, providing functions to store, remove, save, split and plot."""
 
@@ -297,6 +319,11 @@ class Results:
         self._matrix: np.ndarray = np.zeros(
             shape=(2 * bpms, x_correctors + y_correctors)
         )
+
+    def load_init(self, matrix, config):
+        """To only be used when loading csv."""
+        self._config = config
+        self._matrix = matrix
 
     def store(self, bpm_values: list, index: int):
         """Stores the data in the correct index of the matrix."""
