@@ -9,6 +9,8 @@ on:
 env:
   # The target python version, which must match the Dockerfile version
   CONTAINER_PYTHON: "3.10"
+  # enable QT tests with no X Display
+  QT_QPA_PLATFORM: "offscreen"
 
 jobs:
   lint:
