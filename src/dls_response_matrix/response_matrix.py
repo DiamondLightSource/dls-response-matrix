@@ -1,4 +1,5 @@
 import json
+import logging as log
 import os
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -13,6 +14,11 @@ from matplotlib.colors import TwoSlopeNorm
 
 DEFAULT_MACHINE_MODE = "I04"
 MAX_BPM_ATTEMPTS = 3
+
+CONSOLE_LOG_FORMAT = "%(levelname)-7s: [%(filename)s:%(lineno)d] — %(message)s"
+FILE_LOG_FORMAT = (
+    "%(levelname)-7s: %(asctime)s — [%(filename)s:%(lineno)d] — %(message)s"
+)
 
 DeltaLimits = NamedTuple(
     "DeltaLimits", [("max", float), ("min", float), ("default", float), ("pytac", str)]
@@ -33,6 +39,26 @@ def get_ring_modes():  # Needed for UI initialisation.
     ring_mode_list = caget("SR-CS-RING-01:MODE", format=FORMAT_CTRL).enums
     current_ringmode = caget("SR-CS-RING-01:MODE", datatype=str)
     return ring_mode_list, current_ringmode
+
+
+def get_new_logger(isotime):
+
+    dirname = os.path.dirname(__file__)
+    data_path = "/".join(dirname.split("/")[:-2]) + "/data"
+
+    logger = log.getLogger()
+    logger.setLevel(log.NOTSET)
+    filename = f"{data_path}/RM-{isotime}/log.log"
+    # Console handler
+    console_handler = log.StreamHandler()
+    console_handler.setLevel(log.INFO)
+    console_handler.setFormatter(log.Formatter(CONSOLE_LOG_FORMAT))
+    logger.addHandler(console_handler)
+    # File handler
+    file_handler = log.FileHandler(filename)
+    file_handler.setLevel(log.DEBUG)
+    file_handler.setFormatter(log.Formatter(FILE_LOG_FORMAT))
+    logger.addHandler(file_handler)
 
 
 @dataclass
@@ -83,10 +109,13 @@ class Config:
         proposed_delta = float(proposed_delta)
         max_delta, min_delta, default_delta, pytac_formatted = DELTA_LIMITS[pytac_unit]
 
-        if not (min_delta <= proposed_delta <= max_delta):
-            raise ValueError(
-                f"Delta of {proposed_delta} is outside of acceptable range: [{min_delta}, {max_delta}]."
-            )
+        try:
+            if not (min_delta <= proposed_delta <= max_delta):
+                raise ValueError(
+                    f"Delta of {proposed_delta} is outside of acceptable range: [{min_delta}, {max_delta}]."
+                )
+        except ValueError as e:
+            log.critical(e, exc_info=True)
 
         if proposed_delta == 0.0:
             return default_delta, pytac_formatted
@@ -105,6 +134,7 @@ class Config:
         """Configures the port"""
 
         os.environ["EPICS_CA_SERVER_PORT"] = port
+        log.debug(f"'EPICS_CA_SERVER_PORT' set to {port}")
 
 
 @dataclass
@@ -138,6 +168,10 @@ class Metadata:
         }
         with open(f"RM-{self.config.filename}-metadata.json", "w") as outfile:
             json.dump(dictionary, outfile, indent=4, ensure_ascii=False)
+
+
+class BeamPositionMonitorException(Exception):
+    pass
 
 
 class LatticeModel:
@@ -214,7 +248,6 @@ class LatticeModel:
     def measure_bpms(self):
         """Measures all bpms in the lattice."""
         # Measures all BPMs (even disabled) for performance requirements.
-        # The try statement is to guard against caget failures.
         bpm_x = self._lattice.get_element_values(
             "BPM", "x", pytac.RB, self._config.pytac_unit
         )
@@ -222,6 +255,7 @@ class LatticeModel:
             "BPM", "y", pytac.RB, self._config.pytac_unit
         )
 
+        # Repeat CA requests for BPMs due to recurring device issues
         for attempt in range(MAX_BPM_ATTEMPTS):
             try:
                 bpm_x = self._lattice.get_element_values(
@@ -231,14 +265,16 @@ class LatticeModel:
                     "BPM", "y", pytac.RB, self._config.pytac_unit
                 )
             except ca_nothing as e:
-                print(f"Failure no: {attempt + 1} to retrieve bpm values:\n{e}")
+                log.error(f"Failure no: {attempt + 1} to retrieve bpm values:\n{e}")
                 # log.error(f"Failure no: {attempt + 1} to retrieve bpm values:\n{e}")
                 if attempt < MAX_BPM_ATTEMPTS - 1:
                     cothread.Sleep(1)
                     continue
-                print(f"Failed to retrieve bpm values {MAX_BPM_ATTEMPTS} times:\n{e}")
+                log.critical(
+                    f"Failed to retrieve bpm values {MAX_BPM_ATTEMPTS} times:\n{e}"
+                )
                 # log.critical(f"Failed to retrieve bpm values {MAX_BPM_ATTEMPTS} times:\n{e}")
-                raise Exception(
+                raise BeamPositionMonitorException(
                     f"Failed to retrieve bpm values {MAX_BPM_ATTEMPTS} times:\n{e}"
                 )
             else:
@@ -247,7 +283,10 @@ class LatticeModel:
 
     def calculate_responses(self, results, progress_callback):
         """Calls the response matrix on both HSTRs and VSTRs."""
+        self.counter = 0
+        log.info("Starting X axis response matrix.")
         self.calculate_axis_response(results, self.hstr, "x_kick", 0, progress_callback)
+        log.info("Starting Y axis response matrix.")
         self.calculate_axis_response(
             results, self.vstr, "y_kick", len(self.hstr), progress_callback
         )
@@ -275,6 +314,7 @@ class LatticeModel:
                 (initial_corr_values + self._config.delta),
                 self._config.pytac_unit,
             )
+            log.debug(f"Stepped {corrector.get_pv_name(field, pytac.RB)[:-2]}")
             # The sleeps ensure that the machine has settled/virtac has calculated changes.
             cothread.Sleep(self._config.time_delay)
             final_bpm = self.measure_bpms()
