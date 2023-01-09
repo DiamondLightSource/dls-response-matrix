@@ -166,7 +166,19 @@ class Metadata:
             # The initial corrector values are for all correctors in the full lattice.
             "Initial HSTR, VSTR:": self.initial,
         }
-        with open(f"RM-{self.config.filename}-metadata.json", "w") as outfile:
+
+        # TODO: Correct pathing for saving? top level?
+        foldername = f"/RM-{self.config.iso_time}"
+        try:
+            os.mkdir(foldername)
+        except FileExistsError:
+            pass
+        cwd = os.path.join(os.getcwd(), foldername)
+        filename = f"metadata-{self.config.filename}.json"
+        with open(
+            f"{os.path.join(cwd, filename)}",
+            "w",
+        ) as outfile:
             json.dump(dictionary, outfile, indent=4, ensure_ascii=False)
 
 
@@ -327,11 +339,13 @@ class LatticeModel:
             progress_callback(self.counter * 100)
 
 
-def load_csv(old_filename, new_filename=None):
+def load_csv(isotime, old_filename, new_filename=None):
     if new_filename is None:
         new_filename = old_filename
-    matrix = np.genfromtxt(f"RM-{old_filename}.csv")
-    with open(f"RM-{old_filename}-metadata.json") as f:
+    dirname = os.path.dirname(__file__)
+    data_path = "/".join(dirname.split("/")[:-2]) + "/data"
+    matrix = np.genfromtxt(f"{data_path}/RM-{isotime}/rawdata-{old_filename}.csv")
+    with open(f"{data_path}/RM-{isotime}/metadata-{old_filename}.json") as f:
         metadata = json.load(f)
     config = Config(
         new_filename,
@@ -381,20 +395,43 @@ class Results:
 
     def write_csv(self):
         """Writes the matrix to a .csv."""
+        dirname = os.path.dirname(__file__)
+        data_path = "/".join(dirname.split("/")[:-2]) + "/data"
+        np.savetxt(
+            f"{data_path}/RM-{self._config.iso_time}/rawdata-full-{self._config.filename}.csv",
+            self._matrix,
+        )
 
-        np.savetxt(f"RM-{self._config.filename}.csv", self._matrix)
-
-    def plot(self):
+    def plot(self, split=False):
         """Plots the matrix."""
 
-        plt.imshow(self._matrix, "RdBu", norm=TwoSlopeNorm(vcenter=0))
-        plt.xlim([-1, np.shape(self._matrix)[1]])
-        plt.ylim([np.shape(self._matrix)[0], -1])
-        plt.colorbar()
-        plt.xlabel("Correctors")
-        plt.ylabel("BPM")
-        plt.title(f"Response Matrix: {self._config.iso_time}")
-        plt.savefig(f"RM-{self._config.filename}.png", bbox_inches="tight", dpi=1200)
+        dirname = os.path.dirname(__file__)
+        data_path = "/".join(dirname.split("/")[:-2]) + "/data"
+
+        if split:
+            names = ["xCxB", "yCxB", "xCyB", "yCyB"]
+        else:
+            names = ["full"]
+            matrix = self._matrix
+
+        for plot_name in names:
+            matrix = np.genfromtxt(
+                f"{data_path}/RM-{self._config.iso_time}/rawdata-{plot_name}-{self._config.filename}.csv"
+            )
+
+            plt.imshow(matrix, "RdBu", norm=TwoSlopeNorm(vcenter=0))
+            plt.xlim([-1, np.shape(matrix)[1]])
+            plt.ylim([np.shape(matrix)[0], -1])
+            plt.colorbar()
+            plt.xlabel("Correctors")
+            plt.ylabel("BPM")
+            plt.title(f"Response Matrix: {self._config.iso_time}")
+            plt.savefig(
+                f"{data_path}/RM-{self._config.iso_time}/plot-{plot_name}-{self._config.filename}.png",
+                bbox_inches="tight",
+                dpi=1200,
+            )
+            plt.close()
 
     def split(self):
         """Splits the matrix up into quadrants and writes .csvs."""
@@ -403,10 +440,25 @@ class Results:
         xCxB, yCxB = np.hsplit(xCxB_yCxB, 2)
         xCyB, yCyB = np.hsplit(xCyB_yCyC, 2)
 
-        np.savetxt(f"RM-xCxB-{self._config.filename}.csv", xCxB)
-        np.savetxt(f"RM-yCxB-{self._config.filename}.csv", yCxB)
-        np.savetxt(f"RM-xCyB-{self._config.filename}.csv", xCyB)
-        np.savetxt(f"RM-yCyB-{self._config.filename}.csv", yCyB)
+        dirname = os.path.dirname(__file__)
+        data_path = "/".join(dirname.split("/")[:-2]) + "/data"
+
+        np.savetxt(
+            f"{data_path}/RM-{self._config.iso_time}/rawdata-xCxB-{self._config.filename}.csv",
+            xCxB,
+        )
+        np.savetxt(
+            f"{data_path}/RM-{self._config.iso_time}/rawdata-yCxB-{self._config.filename}.csv",
+            yCxB,
+        )
+        np.savetxt(
+            f"{data_path}/RM-{self._config.iso_time}/rawdata-xCyB-{self._config.filename}.csv",
+            xCyB,
+        )
+        np.savetxt(
+            f"{data_path}/RM-{self._config.iso_time}/rawdata-yCyB-{self._config.filename}.csv",
+            yCyB,
+        )
 
 
 def response_matrix(
@@ -459,12 +511,13 @@ def response_matrix(
     if remove_bpms:
         results.remove_bpms(disabled_bpms, len(lattice_model.bpm))
 
+    results.write_csv()
     # Determine if a single or split matrix is required.
+    plot = False
     if split_graphs:
         results.split()
-    else:
-        results.write_csv()
-    results.plot()
+        plot = True
+    results.plot(plot)
 
     # Calculate the time taken.
     elapsed_time = (datetime.now() - start).total_seconds()
