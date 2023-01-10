@@ -13,6 +13,11 @@ from cothread.catools import FORMAT_CTRL, ca_nothing, caget
 from matplotlib.colors import TwoSlopeNorm
 
 DEFAULT_MACHINE_MODE = "I04"
+
+MAX_HSTR = 172
+MAX_VSTR = 172
+MAX_BPM = 137
+
 MAX_BPM_ATTEMPTS = 3
 
 CONSOLE_LOG_FORMAT = "%(levelname)-7s: [%(filename)s:%(lineno)d] — %(message)s"
@@ -355,9 +360,6 @@ def load_csv(isotime, old_filename, new_filename=None):
         metadata["Machine type"],
         0,
     )
-    MAX_HSTR = 172
-    MAX_VSTR = 172
-    MAX_BPM = 137
     results = Results(config, MAX_HSTR, MAX_VSTR, MAX_BPM)
     results.load_init(matrix, config)
     return results
