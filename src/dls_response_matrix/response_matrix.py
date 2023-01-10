@@ -377,7 +377,16 @@ class Results:
         )
 
     def load_init(self, matrix, config):
-        """To only be used when loading csv."""
+        """This load_init function is only to be called once,
+        when loading a csv into a Results object.
+
+        The purpose is to enable a universal Results __init__,
+        but dependant on how you make/load the data will decide how
+        the data is loaded into the matrix.
+
+        If the data is generated, the Results.store() function is
+        applicable, but if you load the data in, then Results.load_init() will work.
+        """
         self._config = config
         self._matrix = matrix
 
