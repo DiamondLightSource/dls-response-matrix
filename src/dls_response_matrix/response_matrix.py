@@ -427,7 +427,7 @@ class Results:
             plt.colorbar()
             plt.xlabel("Correctors")
             plt.ylabel("BPM")
-            plt.title(f"Response Matrix: {self._config.iso_time}")
+            plt.title(f"Response Matrix {plot_name}: {self._config.iso_time}")
             plt.savefig(
                 f"{data_path}/RM-{self._config.iso_time}/plot-{plot_name}-{self._config.filename}.png",
                 bbox_inches="tight",
