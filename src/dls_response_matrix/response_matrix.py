@@ -91,6 +91,7 @@ class Config:
         # If no filename is provided, defaults to ISO time.
         if filename is None:
             filename = iso_time
+        log.info(f"Filename: {filename}, Iso Time: {iso_time}.")
 
         delta, pytac_formatted = cls.check_limits(proposed_delta, pytac_unit)
         time_delay = cls.machine_setup(machine_type)
@@ -120,6 +121,7 @@ class Config:
 
         if proposed_delta == 0.0:
             return default_delta, pytac_formatted
+        log.info(f"Delta: {proposed_delta}.")
         return proposed_delta, pytac_formatted
 
     @classmethod
@@ -152,6 +154,7 @@ class Metadata:
 
     def write_json(self):
         """This function writes the metadata to a .json file."""
+        log.info("Saving metadata .json.")
         dictionary = {
             # Main metadata.
             "Filename": self.config.filename,
@@ -193,6 +196,7 @@ class LatticeModel:
     def __init__(self, config: Config):
         """Initialising the lattice, HSTR, VSTR and BPM arrays."""
         self._config = config
+        log.debug(f"Loading pytac lattice: {self._config.ring_mode}")
         self._lattice = pytac.load_csv.load(self._config.ring_mode)
 
         # Required to stop timeout on the machine.
@@ -209,6 +213,7 @@ class LatticeModel:
         """Removes disabled correctors from the hstr/vstr lists if required."""
 
         if remove_correctors:
+            log.info("Removing disabled correctors")
             hstr_array = self._lattice.get_element_values("HSTR", "h_sofb_disabled")
             vstr_array = self._lattice.get_element_values("VSTR", "v_sofb_disabled")
 
@@ -237,6 +242,7 @@ class LatticeModel:
         """Tracks disabled bpms for removal after measurement."""
 
         if remove_bpms:
+            log.info("Removing disabled bpms")
             self._bpm_inactive = self._lattice.get_element_values("BPM", "enabled")
             disabled_bpm_indices = [
                 index
@@ -279,14 +285,12 @@ class LatticeModel:
                 )
             except ca_nothing as e:
                 log.error(f"Failure no: {attempt + 1} to retrieve bpm values:\n{e}")
-                # log.error(f"Failure no: {attempt + 1} to retrieve bpm values:\n{e}")
                 if attempt < MAX_BPM_ATTEMPTS - 1:
                     cothread.Sleep(1)
                     continue
                 log.critical(
                     f"Failed to retrieve bpm values {MAX_BPM_ATTEMPTS} times:\n{e}"
                 )
-                # log.critical(f"Failed to retrieve bpm values {MAX_BPM_ATTEMPTS} times:\n{e}")
                 raise BeamPositionMonitorException(
                     f"Failed to retrieve bpm values {MAX_BPM_ATTEMPTS} times:\n{e}"
                 )
@@ -388,6 +392,7 @@ class Results:
 
     def remove_bpms(self, disabled_bpms: list, x_bpms: int):
         """Removes inactive bpm rows from the matrix."""
+        log.info("Removed inactive bpms.")
         # X bpms
         _disabled_bpm_list = [index for index in disabled_bpms]
         # Y bpms
@@ -398,6 +403,7 @@ class Results:
 
     def write_csv(self):
         """Writes the matrix to a .csv."""
+        log.info("Writing to data to a .csv.")
         dirname = os.path.dirname(__file__)
         data_path = "/".join(dirname.split("/")[:-2]) + "/data"
         np.savetxt(
@@ -437,7 +443,7 @@ class Results:
 
     def split(self):
         """Splits the matrix up into quadrants and writes .csvs."""
-
+        log.info("Splitting the matrix.")
         xCxB_yCxB, xCyB_yCyC = np.vsplit(self._matrix, 2)
         xCxB, yCxB = np.hsplit(xCxB_yCxB, 2)
         xCyB, yCyB = np.hsplit(xCyB_yCyC, 2)
