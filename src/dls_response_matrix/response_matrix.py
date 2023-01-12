@@ -160,7 +160,7 @@ class Metadata:
             # Main metadata.
             "Filename": self.config.filename,
             "ISO time": self.config.iso_time,
-            "Lattice model": self.config.ring_mode,
+            "Ring Mode": self.config.ring_mode,
             "Machine type": self.config.machine_type,
             "Time delay": self.config.time_delay,
             "Delta": self.config.delta,
@@ -356,9 +356,10 @@ def load_csv(isotime, old_filename, new_filename=None):
         new_filename,
         metadata["ISO time"],
         metadata["Pytac units"],
-        metadata["Lattice model"],
+        metadata["Ring Mode"],
         metadata["Machine type"],
-        0,
+        metadata["Delta"],
+        metadata["Time delay"],
     )
     results = Results(config, MAX_HSTR, MAX_VSTR, MAX_BPM)
     results.load_init(matrix, config)
