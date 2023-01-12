@@ -1,7 +1,7 @@
 from argparse import ArgumentParser
 
 from dls_response_matrix import response_matrix as rm
-from dls_response_matrix.respm_app import main as app_main
+from dls_response_matrix.respm_app import start_gui
 
 from . import __version__
 
@@ -80,7 +80,7 @@ def parse_arguments():
 
 
 def main(args=None):
-    args = parse_arguments()  # noqa
+    args = parse_arguments()
     rm.response_matrix(
         args.filename,
         args.ring_mode,
@@ -93,9 +93,15 @@ def main(args=None):
     )
 
 
+def parse_gui_arguments():
+    parser = ArgumentParser()
+    parser.add_argument("--version", action="version", version=__version__)
+    return parser.parse_args()
+
+
 def gui_main():
-    args = parse_arguments()  # noqa
-    app_main(HELP_INFO)
+    parse_gui_arguments()  # Only used for version
+    start_gui(HELP_INFO)
 
 
 if __name__ == "__main__":

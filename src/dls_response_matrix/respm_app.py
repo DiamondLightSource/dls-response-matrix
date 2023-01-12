@@ -1,4 +1,3 @@
-from argparse import ArgumentParser
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -6,7 +5,6 @@ import cothread
 import pytac  # noqa
 from PyQt5 import QtCore, QtWidgets, uic  # noqa
 
-from dls_response_matrix import __version__
 from dls_response_matrix import response_matrix as rm
 
 _qapp = cothread.iqt()
@@ -92,20 +90,9 @@ class MainWindow(QtWidgets.QMainWindow):
         cothread.Spawn(self.reset_on_completion, process)
 
 
-def parse_arguments():
-    parser = ArgumentParser()
-    parser.add_argument("--version", action="version", version=__version__)
-    return parser.parse_args()
-
-
-def main(tooltips=None):
+def start_gui(tooltips=None):
     if tooltips is None:
         print("tooltips cannot be none.")
-    args = parse_arguments()  # noqa
     window = MainWindow(tooltips)
     window.show()
     cothread.WaitForQuit()
-
-
-if __name__ == "__main__":
-    main()
