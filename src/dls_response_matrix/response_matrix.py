@@ -3,7 +3,7 @@ import logging as log
 import os
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import List, NamedTuple, Tuple
+from typing import List, NamedTuple, Optional, Tuple
 
 import cothread
 import matplotlib.pyplot as plt
@@ -13,10 +13,6 @@ from cothread.catools import FORMAT_CTRL, ca_nothing, caget
 from matplotlib.colors import TwoSlopeNorm
 
 DEFAULT_MACHINE_MODE = "I04"
-
-MAX_HSTR = 172
-MAX_VSTR = 172
-MAX_BPM = 137
 
 MAX_BPM_ATTEMPTS = 3
 
@@ -150,9 +146,9 @@ class Metadata:
     config: Config
 
     # Initial and disabled states.
-    disabled_correctors: List[int] = field(default_factory=list)
-    disabled_bpms: List[int] = field(default_factory=list)
-    initial: List[float] = field(default_factory=list)
+    disabled_correctors: List[List[int]] = field(default_factory=list)
+    disabled_bpms: List[List[int]] = field(default_factory=list)
+    initial: List[List[float]] = field(default_factory=list)
 
     def write_json(self):
         """This function writes the metadata to a .json file."""
@@ -344,52 +340,47 @@ class LatticeModel:
             progress_callback(self.counter * 100)
 
 
-def load_csv(isotime, old_filename, new_filename=None):
-    if new_filename is None:
-        new_filename = old_filename
-    dirname = os.path.dirname(__file__)
-    data_path = "/".join(dirname.split("/")[:-2]) + "/data"
-    matrix = np.genfromtxt(f"{data_path}/RM-{isotime}/rawdata-{old_filename}.csv")
-    with open(f"{data_path}/RM-{isotime}/metadata-{old_filename}.json") as f:
-        metadata = json.load(f)
-    config = Config(
-        new_filename,
-        metadata["ISO time"],
-        metadata["Pytac units"],
-        metadata["Ring Mode"],
-        metadata["Machine type"],
-        metadata["Delta"],
-        metadata["Time delay"],
-    )
-    results = Results(config, MAX_HSTR, MAX_VSTR, MAX_BPM)
-    results.load_init(matrix, config)
-    return results
-
-
 class Results:
     """The Results class handles the data, providing functions to store, remove, save, split and plot."""
 
-    def __init__(self, config: Config, x_correctors: int, y_correctors: int, bpms: int):
-        """Initializes the np.ndarray to the right shape."""
+    def __init__(self, config: Config, matrix: np.ndarray):
+        self._config: Config = config
+        self._matrix: np.ndarray = matrix
 
-        self._config = config
-        self._matrix: np.ndarray = np.zeros(
-            shape=(2 * bpms, x_correctors + y_correctors)
+    @classmethod
+    def from_corrector_info(
+        cls, config: Config, x_correctors: int, y_correctors: int, bpms: int
+    ):
+        """Loads the Results object when performing on the machine."""
+
+        matrix: np.ndarray = np.zeros(shape=(2 * bpms, x_correctors + y_correctors))
+        return cls(config, matrix)
+
+    @classmethod
+    def from_csv(
+        cls,
+        iso_time: str,
+        old_filename: str,
+        new_filename: Optional[str] = None,  # noqa: F821
+    ):
+        """Loads the Results object from a csv."""
+        if new_filename is None:
+            new_filename = old_filename
+        dirname = os.path.dirname(__file__)
+        data_path = "/".join(dirname.split("/")[:-2]) + "/data"
+        matrix = np.genfromtxt(f"{data_path}/RM-{iso_time}/rawdata-{old_filename}.csv")
+        with open(f"{data_path}/RM-{iso_time}/metadata-{old_filename}.json") as f:
+            metadata = json.load(f)
+        config = Config(
+            new_filename,
+            metadata["ISO time"],
+            metadata["Pytac units"],
+            metadata["Ring Mode"],
+            metadata["Machine type"],
+            metadata["Delta"],
+            metadata["Time delay"],
         )
-
-    def load_init(self, matrix, config):
-        """This load_init function is only to be called once,
-        when loading a csv into a Results object.
-
-        The purpose is to enable a universal Results __init__,
-        but dependant on how you make/load the data will decide how
-        the data is loaded into the matrix.
-
-        If the data is generated, the Results.store() function is
-        applicable, but if you load the data in, then Results.load_init() will work.
-        """
-        self._config = config
-        self._matrix = matrix
+        return cls(config, matrix)
 
     def store(self, bpm_values: list, index: int):
         """Stores the data in the correct index of the matrix."""
@@ -416,7 +407,6 @@ class Results:
 
     def plot(self, split=False):
         """Plots the matrix."""
-
         dirname = os.path.dirname(__file__)
         data_path = "/".join(dirname.split("/")[:-2]) + "/data"
 
@@ -487,11 +477,12 @@ def response_matrix(
     """Response_matrix calculates the response matrix and times the process."""
     # Timing setup.
     start = datetime.now()
-    iso_name = start.strftime("%Y%m%dT%H%M%S")
+    iso_time = start.strftime("%Y%m%dT%H%M%S")
+    get_new_logger(iso_time)
 
     # Config setup.
     config = Config.get_configuration(
-        filename, iso_name, pytac_unit, ring_mode, machine_type, proposed_delta
+        filename, iso_time, pytac_unit, ring_mode, machine_type, proposed_delta
     )
 
     # Metadata setup.
@@ -512,7 +503,7 @@ def response_matrix(
     metadata.write_json()
 
     # Initialise the matrix
-    results = Results(
+    results = Results.from_corrector_info(
         config, len(lattice_model.hstr), len(lattice_model.vstr), len(lattice_model.bpm)
     )
 
