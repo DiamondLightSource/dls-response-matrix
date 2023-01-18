@@ -13,8 +13,8 @@ classifiers = [
 ]
 description = "Generator of storage ring response matrix"
 dependencies = [
+    "cothread>=2.18.2",
     "epicscorelibs",
-    "cothread",
     "matplotlib",
     "numpy",
     "pytac",
