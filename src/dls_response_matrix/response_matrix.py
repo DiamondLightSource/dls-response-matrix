@@ -269,15 +269,8 @@ class LatticeModel:
     def measure_bpms(self):
         """Measures all bpms in the lattice."""
         # Measures all BPMs (even disabled) for performance requirements.
-        bpm_x = self._lattice.get_element_values(
-            "BPM", "x", pytac.RB, self._config.pytac_unit
-        )
-        bpm_y = self._lattice.get_element_values(
-            "BPM", "y", pytac.RB, self._config.pytac_unit
-        )
-
         # Repeat CA requests for BPMs due to recurring device issues
-        for attempt in range(MAX_BPM_ATTEMPTS):
+        for attempt in range(1, MAX_BPM_ATTEMPTS + 1):
             try:
                 bpm_x = self._lattice.get_element_values(
                     "BPM", "x", pytac.RB, self._config.pytac_unit
