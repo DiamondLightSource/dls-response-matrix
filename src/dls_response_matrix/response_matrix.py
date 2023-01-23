@@ -204,7 +204,7 @@ class LatticeModel:
         # Required to stop timeout on the machine.
         self._lattice._data_source_manager._data_sources[pytac.LIVE]._devices[
             "beam_current"
-        ]._cs._timeout = 5.0
+        ]._cs._timeout = 10.0
 
         self.hstr = self._lattice.get_elements("HSTR")
         self.vstr = self._lattice.get_elements("VSTR")
