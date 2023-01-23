@@ -10,12 +10,11 @@ classifiers = [
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
 ]
 description = "Generator of storage ring response matrix"
 dependencies = [
+    "cothread>=2.18.2",
     "epicscorelibs",
-    "cothread",
     "matplotlib",
     "numpy",
     "pytac",
@@ -40,11 +39,12 @@ dev = [
     "sphinx-copybutton",
     "sphinx-design",
     "tox-direct",
-    "types-mock",
+    "types-mock"
 ]
 
 [project.scripts]
 dls-response-matrix = "dls_response_matrix.__main__:main"
+dls-response-matrix-gui = "dls_response_matrix.__main__:gui_main"
 
 [project.urls]
 GitHub = "https://github.com/DiamondLightSource/dls-response-matrix"

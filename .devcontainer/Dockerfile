@@ -27,11 +27,18 @@ RUN pip install ${PIP_OPTIONS}
 FROM python:3.10-slim as runtime
 
 # Add apt-get system dependecies for runtime here if needed
+RUN apt-get update && apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends \
+    libqt5gui5 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Use "minimal" over "xcb" due to Qt issues
+ENV QT_QPA_PLATFORM=minimal
 
 # copy the virtual environment from the build stage and put it in PATH
 COPY --from=build /venv/ /venv/
 ENV PATH=/venv/bin:$PATH
 
 # change this entrypoint if it is not the same as the repo
-ENTRYPOINT ["dls-response-matrix"]
+ENTRYPOINT ["dls-response-matrix-gui"]
 CMD ["--version"]

@@ -1,9 +1,9 @@
-import argparse
 import json
+import logging as log
 import os
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import List, NamedTuple, Tuple
+from typing import List, NamedTuple, Tuple, Union
 
 import cothread
 import matplotlib.pyplot as plt
@@ -13,6 +13,13 @@ from cothread.catools import FORMAT_CTRL, caget
 from matplotlib.colors import TwoSlopeNorm
 
 DEFAULT_MACHINE_MODE = "I04"
+
+MAX_BPM_ATTEMPTS = 3
+
+CONSOLE_LOG_FORMAT = "%(levelname)-7s: [%(filename)s:%(lineno)d] — %(message)s"
+FILE_LOG_FORMAT = (
+    "%(levelname)-7s: %(asctime)s — [%(filename)s:%(lineno)d] — %(message)s"
+)
 
 DeltaLimits = NamedTuple(
     "DeltaLimits", [("max", float), ("min", float), ("default", float), ("pytac", str)]
@@ -30,9 +37,32 @@ MACHINE_SETUP = {
 
 
 def get_ring_modes():  # Needed for UI initialisation.
-    res = caget("SR-CS-RING-01:MODE", format=FORMAT_CTRL)
-    cur = caget("SR-CS-RING-01:MODE", datatype=str)
-    return res.enums, cur
+    ring_mode_list = caget("SR-CS-RING-01:MODE", format=FORMAT_CTRL).enums
+    current_ringmode = caget("SR-CS-RING-01:MODE", datatype=str)
+    return ring_mode_list, current_ringmode
+
+
+def get_new_logger(isotime):
+    cwd = os.getcwd()
+    foldername = f"RM-{isotime}"
+    filename = "log.log"
+    try:
+        os.mkdir(os.path.join(cwd, foldername))
+    except FileExistsError:
+        pass
+
+    logger = log.getLogger()
+    logger.setLevel(log.NOTSET)
+    # Console handler
+    console_handler = log.StreamHandler()
+    console_handler.setLevel(log.INFO)
+    console_handler.setFormatter(log.Formatter(CONSOLE_LOG_FORMAT))
+    logger.addHandler(console_handler)
+    # File handler
+    file_handler = log.FileHandler(os.path.join(cwd, foldername, filename))
+    file_handler.setLevel(log.DEBUG)
+    file_handler.setFormatter(log.Formatter(FILE_LOG_FORMAT))
+    logger.addHandler(file_handler)
 
 
 @dataclass
@@ -64,6 +94,7 @@ class Config:
         # If no filename is provided, defaults to ISO time.
         if filename is None:
             filename = iso_time
+        log.info(f"Filename: {filename}, Iso Time: {iso_time}.")
 
         delta, pytac_formatted = cls.check_limits(proposed_delta, pytac_unit)
         time_delay = cls.machine_setup(machine_type)
@@ -83,13 +114,17 @@ class Config:
         proposed_delta = float(proposed_delta)
         max_delta, min_delta, default_delta, pytac_formatted = DELTA_LIMITS[pytac_unit]
 
-        if not (min_delta <= proposed_delta <= max_delta):
-            raise ValueError(
-                f"Delta of {proposed_delta} is outside of acceptable range: [{min_delta}, {max_delta}]."
-            )
+        try:
+            if not (min_delta <= proposed_delta <= max_delta):
+                raise ValueError(
+                    f"Delta of {proposed_delta} is outside of acceptable range: [{min_delta}, {max_delta}]."
+                )
+        except ValueError as e:
+            log.critical(e, exc_info=True)
 
         if proposed_delta == 0.0:
             return default_delta, pytac_formatted
+        log.info(f"Delta: {proposed_delta}.")
         return proposed_delta, pytac_formatted
 
     @classmethod
@@ -105,6 +140,7 @@ class Config:
         """Configures the port"""
 
         os.environ["EPICS_CA_SERVER_PORT"] = port
+        log.debug(f"'EPICS_CA_SERVER_PORT' set to {port}")
 
 
 @dataclass
@@ -115,17 +151,18 @@ class Metadata:
     config: Config
 
     # Initial and disabled states.
-    disabled_correctors: List[int] = field(default_factory=list)
-    disabled_bpms: List[int] = field(default_factory=list)
-    initial: List[float] = field(default_factory=list)
+    disabled_correctors: List[List[int]] = field(default_factory=list)
+    disabled_bpms: List[List[int]] = field(default_factory=list)
+    initial: List[List[float]] = field(default_factory=list)
 
     def write_json(self):
         """This function writes the metadata to a .json file."""
+        log.info("Saving metadata .json.")
         dictionary = {
             # Main metadata.
             "Filename": self.config.filename,
             "ISO time": self.config.iso_time,
-            "Lattice model:": self.config.ring_mode,
+            "Ring Mode": self.config.ring_mode,
             "Machine type": self.config.machine_type,
             "Time delay": self.config.time_delay,
             "Delta": self.config.delta,
@@ -136,8 +173,23 @@ class Metadata:
             # The initial corrector values are for all correctors in the full lattice.
             "Initial HSTR, VSTR:": self.initial,
         }
-        with open(f"RM-{self.config.filename}-metadata.json", "w") as outfile:
+        cwd = os.getcwd()
+        foldername = f"RM-{self.config.iso_time}"
+        filename = f"metadata-{self.config.filename}.json"
+        try:
+            os.mkdir(os.path.join(cwd, foldername))
+        except FileExistsError:
+            pass
+
+        with open(
+            f"{os.path.join(cwd, foldername, filename)}",
+            "w",
+        ) as outfile:
             json.dump(dictionary, outfile, indent=4, ensure_ascii=False)
+
+
+class BeamPositionMonitorException(Exception):
+    pass
 
 
 class LatticeModel:
@@ -146,12 +198,13 @@ class LatticeModel:
     def __init__(self, config: Config):
         """Initialising the lattice, HSTR, VSTR and BPM arrays."""
         self._config = config
+        log.debug(f"Loading pytac lattice: {self._config.ring_mode}")
         self._lattice = pytac.load_csv.load(self._config.ring_mode)
 
         # Required to stop timeout on the machine.
         self._lattice._data_source_manager._data_sources[pytac.LIVE]._devices[
             "beam_current"
-        ]._cs._timeout = 5.0
+        ]._cs._timeout = 10.0
 
         self.hstr = self._lattice.get_elements("HSTR")
         self.vstr = self._lattice.get_elements("VSTR")
@@ -162,6 +215,7 @@ class LatticeModel:
         """Removes disabled correctors from the hstr/vstr lists if required."""
 
         if remove_correctors:
+            log.info("Removing disabled correctors")
             hstr_array = self._lattice.get_element_values("HSTR", "h_sofb_disabled")
             vstr_array = self._lattice.get_element_values("VSTR", "v_sofb_disabled")
 
@@ -190,6 +244,7 @@ class LatticeModel:
         """Tracks disabled bpms for removal after measurement."""
 
         if remove_bpms:
+            log.info("Removing disabled bpms")
             self._bpm_inactive = self._lattice.get_element_values("BPM", "enabled")
             disabled_bpm_indices = [
                 index
@@ -214,17 +269,37 @@ class LatticeModel:
     def measure_bpms(self):
         """Measures all bpms in the lattice."""
         # Measures all BPMs (even disabled) for performance requirements.
-        bpm_x = self._lattice.get_element_values(
-            "BPM", "x", pytac.RB, self._config.pytac_unit
-        )
-        bpm_y = self._lattice.get_element_values(
-            "BPM", "y", pytac.RB, self._config.pytac_unit
-        )
+        # Repeat CA requests for BPMs due to recurring device issues
+        for attempt in range(1, MAX_BPM_ATTEMPTS + 1):
+            try:
+                bpm_x = self._lattice.get_element_values(
+                    "BPM", "x", pytac.RB, self._config.pytac_unit
+                )
+                bpm_y = self._lattice.get_element_values(
+                    "BPM", "y", pytac.RB, self._config.pytac_unit
+                )
+            except Exception as e:
+                # except ca_nothing or ControlSystemException or Exception as e:
+                log.error(f"Failure no: {attempt} to retrieve bpm values:\n{e}")
+                if attempt < MAX_BPM_ATTEMPTS:
+                    cothread.Sleep(1)
+                    continue
+                log.critical(
+                    f"Failed to retrieve bpm values {MAX_BPM_ATTEMPTS} times:\n{e}"
+                )
+                raise BeamPositionMonitorException(
+                    f"Failed to retrieve bpm values {MAX_BPM_ATTEMPTS} times:\n{e}"
+                )
+            else:
+                break
         return bpm_x + bpm_y
 
     def calculate_responses(self, results, progress_callback):
         """Calls the response matrix on both HSTRs and VSTRs."""
+        self.counter = 0
+        log.info("Starting X axis response matrix.")
         self.calculate_axis_response(results, self.hstr, "x_kick", 0, progress_callback)
+        log.info("Starting Y axis response matrix.")
         self.calculate_axis_response(
             results, self.vstr, "y_kick", len(self.hstr), progress_callback
         )
@@ -252,6 +327,7 @@ class LatticeModel:
                 (initial_corr_values + self._config.delta),
                 self._config.pytac_unit,
             )
+            log.debug(f"Stepped {corrector.get_pv_name(field, pytac.RB)[:-2]}")
             # The sleeps ensure that the machine has settled/virtac has calculated changes.
             cothread.Sleep(self._config.time_delay)
             final_bpm = self.measure_bpms()
@@ -267,13 +343,47 @@ class LatticeModel:
 class Results:
     """The Results class handles the data, providing functions to store, remove, save, split and plot."""
 
-    def __init__(self, config: Config, x_correctors: int, y_correctors: int, bpms: int):
-        """Initializes the np.ndarray to the right shape."""
+    def __init__(
+        self, config: Config, matrix: np.ndarray, filepath: Union[str, None] = None
+    ):
+        self._config: Config = config
+        self._matrix: np.ndarray = matrix
+        self._filepath: Union[str, None] = filepath
 
-        self._config = config
-        self._matrix: np.ndarray = np.zeros(
-            shape=(2 * bpms, x_correctors + y_correctors)
+    @classmethod
+    def from_corrector_info(
+        cls, config: Config, x_correctors: int, y_correctors: int, bpms: int
+    ):
+        """Loads the Results object when performing on the machine."""
+
+        matrix: np.ndarray = np.zeros(shape=(2 * bpms, x_correctors + y_correctors))
+        return cls(config, matrix)
+
+    @classmethod
+    def from_csv(
+        cls,
+        full_folderpath: str,
+        new_filename: str,
+    ):
+        """Loads the Results object from a csv."""
+        file_list = os.listdir(full_folderpath)
+        metadata_file = [file for file in file_list if file.startswith("metadata")][0]
+        rawdata_file = [file for file in file_list if file.startswith("rawdata")][0]
+
+        matrix = np.genfromtxt(os.path.join(full_folderpath, rawdata_file))
+        with open(os.path.join(full_folderpath, metadata_file)) as f:
+            metadata = json.load(f)
+
+        config = Config(
+            new_filename,
+            metadata["ISO time"],
+            metadata["Pytac units"],
+            metadata["Ring Mode"],
+            metadata["Machine type"],
+            metadata["Delta"],
+            metadata["Time delay"],
         )
+        return cls(config, matrix, full_folderpath)
 
     def store(self, bpm_values: list, index: int):
         """Stores the data in the correct index of the matrix."""
@@ -281,6 +391,7 @@ class Results:
 
     def remove_bpms(self, disabled_bpms: list, x_bpms: int):
         """Removes inactive bpm rows from the matrix."""
+        log.info("Removed inactive bpms.")
         # X bpms
         _disabled_bpm_list = [index for index in disabled_bpms]
         # Y bpms
@@ -291,32 +402,77 @@ class Results:
 
     def write_csv(self):
         """Writes the matrix to a .csv."""
+        log.info("Writing to data to a .csv.")
 
-        np.savetxt(f"RM-{self._config.filename}.csv", self._matrix)
+        cwd = self._filepath if self._filepath is not None else os.getcwd()
+        foldername = f"RM-{self._config.iso_time}"
+        filename = f"rawdata-full-{self._config.filename}.csv"
 
-    def plot(self):
+        np.savetxt(
+            os.path.join(cwd, foldername, filename),
+            self._matrix,
+        )
+
+    def plot(self, split=False):
         """Plots the matrix."""
+        cwd = self._filepath if self._filepath is not None else os.getcwd()
+        foldername = f"RM-{self._config.iso_time}"
 
-        plt.imshow(self._matrix, "RdBu", norm=TwoSlopeNorm(vcenter=0))
-        plt.xlim([-1, np.shape(self._matrix)[1]])
-        plt.ylim([np.shape(self._matrix)[0], -1])
-        plt.colorbar()
-        plt.xlabel("Correctors")
-        plt.ylabel("BPM")
-        plt.title(f"Response Matrix: {self._config.iso_time}")
-        plt.savefig(f"RM-{self._config.filename}.png", bbox_inches="tight", dpi=1200)
+        if split:
+            names = ["xCxB", "yCxB", "xCyB", "yCyB"]
+        else:
+            names = ["full"]
+            matrix = self._matrix
+
+        for plot_name in names:
+            csv_filename = f"rawdata-{plot_name}-{self._config.filename}.csv"
+            plot_filename = f"plot-{plot_name}-{self._config.filename}.png"
+            matrix = np.genfromtxt(os.path.join(cwd, foldername, csv_filename))
+
+            plt.imshow(matrix, "RdBu", norm=TwoSlopeNorm(vcenter=0))
+            plt.xlim([-1, np.shape(matrix)[1]])
+            plt.ylim([np.shape(matrix)[0], -1])
+            plt.colorbar()
+            plt.xlabel("Correctors")
+            plt.ylabel("BPM")
+            plt.title(f"Response Matrix {plot_name}: {self._config.iso_time}")
+            plt.savefig(
+                os.path.join(cwd, foldername, plot_filename),
+                bbox_inches="tight",
+                dpi=1200,
+            )
+            plt.close()
 
     def split(self):
         """Splits the matrix up into quadrants and writes .csvs."""
+        log.info("Splitting the matrix.")
+        cwd = self._filepath if self._filepath is not None else os.getcwd()
+        foldername = f"RM-{self._config.iso_time}"
+        xCxB_filename = f"rawdata-xCxB-{self._config.filename}.csv"
+        yCxB_filename = f"rawdata-yCxB-{self._config.filename}.csv"
+        xCyB_filename = f"rawdata-xCyB-{self._config.filename}.csv"
+        yCyB_filename = f"rawdata-yCyB-{self._config.filename}.csv"
 
         xCxB_yCxB, xCyB_yCyC = np.vsplit(self._matrix, 2)
         xCxB, yCxB = np.hsplit(xCxB_yCxB, 2)
         xCyB, yCyB = np.hsplit(xCyB_yCyC, 2)
 
-        np.savetxt(f"RM-xCxB-{self._config.filename}.csv", xCxB)
-        np.savetxt(f"RM-yCxB-{self._config.filename}.csv", yCxB)
-        np.savetxt(f"RM-xCyB-{self._config.filename}.csv", xCyB)
-        np.savetxt(f"RM-yCyB-{self._config.filename}.csv", yCyB)
+        np.savetxt(
+            os.path.join(cwd, foldername, xCxB_filename),
+            xCxB,
+        )
+        np.savetxt(
+            os.path.join(cwd, foldername, yCxB_filename),
+            yCxB,
+        )
+        np.savetxt(
+            os.path.join(cwd, foldername, xCyB_filename),
+            xCyB,
+        )
+        np.savetxt(
+            os.path.join(cwd, foldername, yCyB_filename),
+            yCyB,
+        )
 
 
 def response_matrix(
@@ -333,11 +489,12 @@ def response_matrix(
     """Response_matrix calculates the response matrix and times the process."""
     # Timing setup.
     start = datetime.now()
-    iso_name = start.strftime("%Y%m%dT%H%M%S")
+    iso_time = start.strftime("%Y%m%dT%H%M%S")
+    get_new_logger(iso_time)
 
     # Config setup.
     config = Config.get_configuration(
-        filename, iso_name, pytac_unit, ring_mode, machine_type, proposed_delta
+        filename, iso_time, pytac_unit, ring_mode, machine_type, proposed_delta
     )
 
     # Metadata setup.
@@ -358,7 +515,7 @@ def response_matrix(
     metadata.write_json()
 
     # Initialise the matrix
-    results = Results(
+    results = Results.from_corrector_info(
         config, len(lattice_model.hstr), len(lattice_model.vstr), len(lattice_model.bpm)
     )
 
@@ -369,90 +526,15 @@ def response_matrix(
     if remove_bpms:
         results.remove_bpms(disabled_bpms, len(lattice_model.bpm))
 
+    results.write_csv()
     # Determine if a single or split matrix is required.
+    # TODO: Add parsing for plot.
+    split_plot = False
     if split_graphs:
         results.split()
-    else:
-        results.write_csv()
-    results.plot()
+        split_plot = True
+    results.plot(split_plot)
 
     # Calculate the time taken.
     elapsed_time = (datetime.now() - start).total_seconds()
     print(f"Run in {elapsed_time} seconds")
-
-
-def parse_arguments():
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--filename",
-        "-f",
-        default=None,
-        help="The filename for the saved files. Default is the ISO time.",
-    )
-    parser.add_argument(
-        "--ring-mode",
-        "-r",
-        type=str,
-        default=DEFAULT_MACHINE_MODE,
-        help="The ring mode of the model. Default is I04",
-    )
-    parser.add_argument(
-        "--proposed-delta",
-        "-d",
-        type=float,
-        default=0.0,
-        help="The proposed delta to vary correctors by.",
-    )
-    parser.add_argument(
-        "--pytac-unit",
-        "-u",
-        default="pytac.ENG",
-        const="pytac.PHYS",
-        action="store_const",
-        help="The units for the model. Toggles between pytac.ENG (default) and pytac.PHYS units.",
-    )
-    parser.add_argument(
-        "--machine-type",
-        "-m",
-        default="SIM",
-        const="LIVE",
-        action="store_const",
-        help="The machine type. Toggles between SIM (default) and LIVE units.",
-    )
-    parser.add_argument(
-        "--remove-correctors",
-        "-c",
-        action="store_true",
-        help="Remove disabled correctors. Toggle. Default = False",
-    )
-    parser.add_argument(
-        "--remove-bpms",
-        "-b",
-        action="store_true",
-        help="Remove disabled BPMs. Toggle. Default = False",
-    )
-    parser.add_argument(
-        "--split-graphs",
-        "-s",
-        action="store_true",
-        help="Save individual quadrants. Toggle. Default = False",
-    )
-    return parser.parse_args()
-
-
-def main():
-    args = parse_arguments()
-    response_matrix(
-        args.filename,
-        args.ring_mode,
-        args.proposed_delta,
-        args.pytac_unit,
-        args.machine_type,
-        args.remove_correctors,
-        args.remove_bpms,
-        args.split_graphs,
-    )
-
-
-if __name__ == "__main__":
-    main()
