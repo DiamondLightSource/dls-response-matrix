@@ -3,13 +3,13 @@ import logging as log
 import os
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import List, NamedTuple, Optional, Tuple
+from typing import List, NamedTuple, Tuple, Union
 
 import cothread
 import matplotlib.pyplot as plt
 import numpy as np
 import pytac
-from cothread.catools import FORMAT_CTRL, ca_nothing, caget
+from cothread.catools import FORMAT_CTRL, caget
 from matplotlib.colors import TwoSlopeNorm
 
 DEFAULT_MACHINE_MODE = "I04"
@@ -43,20 +43,23 @@ def get_ring_modes():  # Needed for UI initialisation.
 
 
 def get_new_logger(isotime):
-
-    dirname = os.path.dirname(__file__)
-    data_path = "/".join(dirname.split("/")[:-2]) + "/data"
+    cwd = os.getcwd()
+    foldername = f"RM-{isotime}"
+    filename = "log.log"
+    try:
+        os.mkdir(os.path.join(cwd, foldername))
+    except FileExistsError:
+        pass
 
     logger = log.getLogger()
     logger.setLevel(log.NOTSET)
-    filename = f"{data_path}/RM-{isotime}/log.log"
     # Console handler
     console_handler = log.StreamHandler()
     console_handler.setLevel(log.INFO)
     console_handler.setFormatter(log.Formatter(CONSOLE_LOG_FORMAT))
     logger.addHandler(console_handler)
     # File handler
-    file_handler = log.FileHandler(filename)
+    file_handler = log.FileHandler(os.path.join(cwd, foldername, filename))
     file_handler.setLevel(log.DEBUG)
     file_handler.setFormatter(log.Formatter(FILE_LOG_FORMAT))
     logger.addHandler(file_handler)
@@ -170,17 +173,16 @@ class Metadata:
             # The initial corrector values are for all correctors in the full lattice.
             "Initial HSTR, VSTR:": self.initial,
         }
-
-        # TODO: Correct pathing for saving? top level?
-        foldername = f"/RM-{self.config.iso_time}"
+        cwd = os.getcwd()
+        foldername = f"RM-{self.config.iso_time}"
+        filename = f"metadata-{self.config.filename}.json"
         try:
-            os.mkdir(foldername)
+            os.mkdir(os.path.join(cwd, foldername))
         except FileExistsError:
             pass
-        cwd = os.path.join(os.getcwd(), foldername)
-        filename = f"metadata-{self.config.filename}.json"
+
         with open(
-            f"{os.path.join(cwd, filename)}",
+            f"{os.path.join(cwd, foldername, filename)}",
             "w",
         ) as outfile:
             json.dump(dictionary, outfile, indent=4, ensure_ascii=False)
@@ -283,9 +285,10 @@ class LatticeModel:
                 bpm_y = self._lattice.get_element_values(
                     "BPM", "y", pytac.RB, self._config.pytac_unit
                 )
-            except ca_nothing as e:
-                log.error(f"Failure no: {attempt + 1} to retrieve bpm values:\n{e}")
-                if attempt < MAX_BPM_ATTEMPTS - 1:
+            except Exception as e:
+                # except ca_nothing or ControlSystemException or Exception as e:
+                log.error(f"Failure no: {attempt} to retrieve bpm values:\n{e}")
+                if attempt < MAX_BPM_ATTEMPTS:
                     cothread.Sleep(1)
                     continue
                 log.critical(
@@ -347,9 +350,12 @@ class LatticeModel:
 class Results:
     """The Results class handles the data, providing functions to store, remove, save, split and plot."""
 
-    def __init__(self, config: Config, matrix: np.ndarray):
+    def __init__(
+        self, config: Config, matrix: np.ndarray, filepath: Union[str, None] = None
+    ):
         self._config: Config = config
         self._matrix: np.ndarray = matrix
+        self._filepath: Union[str, None] = filepath
 
     @classmethod
     def from_corrector_info(
@@ -363,18 +369,18 @@ class Results:
     @classmethod
     def from_csv(
         cls,
-        iso_time: str,
-        old_filename: str,
-        new_filename: Optional[str] = None,  # noqa: F821
+        full_folderpath: str,
+        new_filename: str,
     ):
         """Loads the Results object from a csv."""
-        if new_filename is None:
-            new_filename = old_filename
-        dirname = os.path.dirname(__file__)
-        data_path = "/".join(dirname.split("/")[:-2]) + "/data"
-        matrix = np.genfromtxt(f"{data_path}/RM-{iso_time}/rawdata-{old_filename}.csv")
-        with open(f"{data_path}/RM-{iso_time}/metadata-{old_filename}.json") as f:
+        file_list = os.listdir(full_folderpath)
+        metadata_file = [file for file in file_list if file.startswith("metadata")][0]
+        rawdata_file = [file for file in file_list if file.startswith("rawdata")][0]
+
+        matrix = np.genfromtxt(os.path.join(full_folderpath, rawdata_file))
+        with open(os.path.join(full_folderpath, metadata_file)) as f:
             metadata = json.load(f)
+
         config = Config(
             new_filename,
             metadata["ISO time"],
@@ -384,7 +390,7 @@ class Results:
             metadata["Delta"],
             metadata["Time delay"],
         )
-        return cls(config, matrix)
+        return cls(config, matrix, full_folderpath)
 
     def store(self, bpm_values: list, index: int):
         """Stores the data in the correct index of the matrix."""
@@ -404,17 +410,20 @@ class Results:
     def write_csv(self):
         """Writes the matrix to a .csv."""
         log.info("Writing to data to a .csv.")
-        dirname = os.path.dirname(__file__)
-        data_path = "/".join(dirname.split("/")[:-2]) + "/data"
+
+        cwd = self._filepath if self._filepath is not None else os.getcwd()
+        foldername = f"RM-{self._config.iso_time}"
+        filename = f"rawdata-full-{self._config.filename}.csv"
+
         np.savetxt(
-            f"{data_path}/RM-{self._config.iso_time}/rawdata-full-{self._config.filename}.csv",
+            os.path.join(cwd, foldername, filename),
             self._matrix,
         )
 
     def plot(self, split=False):
         """Plots the matrix."""
-        dirname = os.path.dirname(__file__)
-        data_path = "/".join(dirname.split("/")[:-2]) + "/data"
+        cwd = self._filepath if self._filepath is not None else os.getcwd()
+        foldername = f"RM-{self._config.iso_time}"
 
         if split:
             names = ["xCxB", "yCxB", "xCyB", "yCyB"]
@@ -423,9 +432,9 @@ class Results:
             matrix = self._matrix
 
         for plot_name in names:
-            matrix = np.genfromtxt(
-                f"{data_path}/RM-{self._config.iso_time}/rawdata-{plot_name}-{self._config.filename}.csv"
-            )
+            csv_filename = f"rawdata-{plot_name}-{self._config.filename}.csv"
+            plot_filename = f"plot-{plot_name}-{self._config.filename}.png"
+            matrix = np.genfromtxt(os.path.join(cwd, foldername, csv_filename))
 
             plt.imshow(matrix, "RdBu", norm=TwoSlopeNorm(vcenter=0))
             plt.xlim([-1, np.shape(matrix)[1]])
@@ -435,7 +444,7 @@ class Results:
             plt.ylabel("BPM")
             plt.title(f"Response Matrix {plot_name}: {self._config.iso_time}")
             plt.savefig(
-                f"{data_path}/RM-{self._config.iso_time}/plot-{plot_name}-{self._config.filename}.png",
+                os.path.join(cwd, foldername, plot_filename),
                 bbox_inches="tight",
                 dpi=1200,
             )
@@ -444,27 +453,31 @@ class Results:
     def split(self):
         """Splits the matrix up into quadrants and writes .csvs."""
         log.info("Splitting the matrix.")
+        cwd = self._filepath if self._filepath is not None else os.getcwd()
+        foldername = f"RM-{self._config.iso_time}"
+        xCxB_filename = f"rawdata-xCxB-{self._config.filename}.csv"
+        yCxB_filename = f"rawdata-yCxB-{self._config.filename}.csv"
+        xCyB_filename = f"rawdata-xCyB-{self._config.filename}.csv"
+        yCyB_filename = f"rawdata-yCyB-{self._config.filename}.csv"
+
         xCxB_yCxB, xCyB_yCyC = np.vsplit(self._matrix, 2)
         xCxB, yCxB = np.hsplit(xCxB_yCxB, 2)
         xCyB, yCyB = np.hsplit(xCyB_yCyC, 2)
 
-        dirname = os.path.dirname(__file__)
-        data_path = "/".join(dirname.split("/")[:-2]) + "/data"
-
         np.savetxt(
-            f"{data_path}/RM-{self._config.iso_time}/rawdata-xCxB-{self._config.filename}.csv",
+            os.path.join(cwd, foldername, xCxB_filename),
             xCxB,
         )
         np.savetxt(
-            f"{data_path}/RM-{self._config.iso_time}/rawdata-yCxB-{self._config.filename}.csv",
+            os.path.join(cwd, foldername, yCxB_filename),
             yCxB,
         )
         np.savetxt(
-            f"{data_path}/RM-{self._config.iso_time}/rawdata-xCyB-{self._config.filename}.csv",
+            os.path.join(cwd, foldername, xCyB_filename),
             xCyB,
         )
         np.savetxt(
-            f"{data_path}/RM-{self._config.iso_time}/rawdata-yCyB-{self._config.filename}.csv",
+            os.path.join(cwd, foldername, yCyB_filename),
             yCyB,
         )
 
