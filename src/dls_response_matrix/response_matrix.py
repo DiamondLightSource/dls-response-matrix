@@ -528,11 +528,12 @@ def response_matrix(
 
     results.write_csv()
     # Determine if a single or split matrix is required.
-    plot = False
+    # TODO: Add parsing for plot.
+    split_plot = False
     if split_graphs:
         results.split()
-        plot = True
-    results.plot(plot)
+        split_plot = True
+    results.plot(split_plot)
 
     # Calculate the time taken.
     elapsed_time = (datetime.now() - start).total_seconds()
