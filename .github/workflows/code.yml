@@ -173,33 +173,33 @@ jobs:
       - name: Test cli works in runtime image
         run: docker run ${{ env.IMAGE_REPOSITORY }} --version
 
-  release:
-    # upload to PyPI and make a release on every tag
-    needs: [lint, dist, test]
-    if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags') }}
-    runs-on: ubuntu-latest
+  # release:
+  #   # upload to PyPI and make a release on every tag
+  #   needs: [lint, dist, test]
+  #   if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags') }}
+  #   runs-on: ubuntu-latest
 
-    steps:
-      - uses: actions/download-artifact@v3
+  #   steps:
+  #     - uses: actions/download-artifact@v3
 
-      - name: Fixup blank lockfiles
-        # Github release artifacts can't be blank
-        run: for f in lockfiles/*; do [ -s $f ] || echo '# No requirements' >> $f; done
+  #     - name: Fixup blank lockfiles
+  #       # Github release artifacts can't be blank
+  #       run: for f in lockfiles/*; do [ -s $f ] || echo '# No requirements' >> $f; done
 
-      - name: Github Release
-        # We pin to the SHA, not the tag, for security reasons.
-        # https://docs.github.com/en/actions/learn-github-actions/security-hardening-for-github-actions#using-third-party-actions
-        uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v0.1.15
-        with:
-          prerelease: ${{ contains(github.ref_name, 'a') || contains(github.ref_name, 'b') || contains(github.ref_name, 'rc') }}
-          files: |
-            dist/*
-            lockfiles/*
-          generate_release_notes: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #     - name: Github Release
+  #       # We pin to the SHA, not the tag, for security reasons.
+  #       # https://docs.github.com/en/actions/learn-github-actions/security-hardening-for-github-actions#using-third-party-actions
+  #       uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v0.1.15
+  #       with:
+  #         prerelease: ${{ contains(github.ref_name, 'a') || contains(github.ref_name, 'b') || contains(github.ref_name, 'rc') }}
+  #         files: |
+  #           dist/*
+  #           lockfiles/*
+  #         generate_release_notes: true
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          password: ${{ secrets.PYPI_TOKEN }}
+  #     - name: Publish to PyPI
+  #       uses: pypa/gh-action-pypi-publish@release/v1
+  #       with:
+  #         password: ${{ secrets.PYPI_TOKEN }}
