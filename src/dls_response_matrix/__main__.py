@@ -1,7 +1,7 @@
 from argparse import ArgumentParser
 
-from dls_response_matrix import response_matrix as rm
 from dls_response_matrix.respm_app import start_gui
+from dls_response_matrix.response_matrix import DEFAULT_MACHINE_MODE, response_matrix
 
 from . import __version__
 
@@ -32,7 +32,7 @@ def parse_arguments():
         "--ring-mode",
         "-r",
         type=str,
-        default=rm.DEFAULT_MACHINE_MODE,
+        default=DEFAULT_MACHINE_MODE,
         help=HELP_INFO["ring-mode"],
     )
     parser.add_argument(
@@ -81,7 +81,7 @@ def parse_arguments():
 
 def main(args=None):
     args = parse_arguments()
-    rm.response_matrix(
+    response_matrix(
         args.filename,
         args.ring_mode,
         args.proposed_delta,
