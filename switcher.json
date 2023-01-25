@@ -10,5 +10,9 @@
   {
     "version": "improvements",
     "url": "https://DiamondLightSource.github.io/dls-response-matrix/improvements/"
+  },
+  {
+    "version": "unit-tests",
+    "url": "https://DiamondLightSource.github.io/dls-response-matrix/unit-tests/"
   }
 ]
