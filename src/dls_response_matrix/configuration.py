@@ -72,13 +72,10 @@ class Config:
         proposed_delta = float(proposed_delta)
         max_delta, min_delta, default_delta, pytac_formatted = DELTA_LIMITS[pytac_unit]
 
-        try:
-            if not (min_delta <= proposed_delta <= max_delta):
-                raise ValueError(
-                    f"Delta of {proposed_delta} is outside of acceptable range: [{min_delta}, {max_delta}]."
-                )
-        except ValueError as e:
-            log.critical(e, exc_info=True)
+        if not (min_delta <= proposed_delta <= max_delta):
+            raise ValueError(
+                f"Delta of {proposed_delta} is outside of acceptable range: [{min_delta}, {max_delta}]."
+            )
 
         if proposed_delta == 0.0:
             return default_delta, pytac_formatted
