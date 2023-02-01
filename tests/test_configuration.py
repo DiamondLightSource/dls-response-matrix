@@ -58,13 +58,33 @@ def test_configure_ports_sets_ports_correctly_for_live():
     assert os.environ.get(port_name) == live_info[1]
 
 
+def test_machine_setup_set_correctly_for_live():
+    machine_type = "LIVE"
+    time_delay = configuration.MACHINE_SETUP[machine_type][0]
+    result = configuration.Config._machine_setup(machine_type)
+    assert time_delay == result
+
+
+def test_machine_setup_set_correctly_for_sim():
+    machine_type = "SIM"
+    time_delay = configuration.MACHINE_SETUP[machine_type][0]
+    result = configuration.Config._machine_setup(machine_type)
+    assert time_delay == result
+
+
+def test_machine_setup_raises_KeyError_because_incorrect_machine_type():
+    machine_type = "DOES_NOT_EXIST"
+    with pytest.raises(KeyError):
+        configuration.Config._machine_setup(machine_type)
+
+
 @mock.patch(
     "dls_response_matrix.configuration.Config._check_limits",
     return_value=(100.0, "reformatted"),
 )
 @mock.patch("dls_response_matrix.configuration.Config._machine_setup", return_value=3.0)
 def test_get_configuration_returns_Config_with_correct_validation(
-    mock_check_limits, mock_machine_setup
+    mock_machine_setup, mock_check_limits
 ):
     expected_config = configuration.Config(
         TEST_FILE_NAME,
@@ -92,7 +112,7 @@ def test_get_configuration_returns_Config_with_correct_validation(
 )
 @mock.patch("dls_response_matrix.configuration.Config._machine_setup", return_value=3.0)
 def test_get_configuration_returns_Config_with_isotime_if_filename_is_None(
-    mock_check_limits, mock_machine_setup
+    mock_machine_setup, mock_check_limits
 ):
     TEST_FILE_NAME_NONE = None
     expected_config = configuration.Config(
@@ -113,3 +133,26 @@ def test_get_configuration_returns_Config_with_isotime_if_filename_is_None(
         0,
     )
     assert config == expected_config
+
+
+def test_write_json_with_expected_args(tmp_path):
+    config = configuration.Config(
+        TEST_ISO_TIME,
+        TEST_ISO_TIME,
+        "reformatted",
+        "I04",
+        "SIM",
+        100,
+        3,
+    )
+    metadata = configuration.Metadata(config)
+    metadata.write_json(tmp_path)
+    foldername = f"RM-{config.iso_time}"
+    file_list = os.listdir(os.path.join(tmp_path, foldername))
+    metadata_file = [file for file in file_list if file.startswith("metadata")][0]
+    assert str(metadata_file)[:8] == "metadata"
+
+
+def test_write_json_missing_config():
+    with pytest.raises(TypeError):
+        configuration.Metadata()
