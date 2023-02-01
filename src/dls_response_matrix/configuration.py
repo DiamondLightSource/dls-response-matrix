@@ -110,7 +110,7 @@ class Metadata:
     disabled_bpms: List[List[int]] = field(default_factory=list)
     initial: List[List[float]] = field(default_factory=list)
 
-    def write_json(self):
+    def write_json(self, folderpath=None):
         """This function writes the metadata to a .json file."""
         log.info("Saving metadata .json.")
         dictionary = {
@@ -128,9 +128,11 @@ class Metadata:
             # The initial corrector values are for all correctors in the full lattice.
             "Initial HSTR, VSTR:": self.initial,
         }
-        cwd = os.getcwd()
+
+        cwd = os.getcwd() if folderpath is None else folderpath
         foldername = f"RM-{self.config.iso_time}"
         filename = f"metadata-{self.config.filename}.json"
+
         os.makedirs(os.path.join(cwd, foldername), exist_ok=True)
 
         with open(
