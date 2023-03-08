@@ -13,12 +13,13 @@ classifiers = [
 ]
 description = "Generator of storage ring response matrix"
 dependencies = [
-    "cothread>=2.18.2",
+    "cothread>=2.18.3",
     "epicscorelibs",
     "matplotlib",
     "numpy",
     "pytac",
-    "PyQt5"
+    "PyQt6",
+    "setuptools>=60.0.0",
 ]
 dynamic = ["version"]
 license.file = "LICENSE"
