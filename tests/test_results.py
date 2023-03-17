@@ -45,4 +45,17 @@ def test_results_init_from_csv(tmp_path):
 
 
 def test_results_remove_bpms():
-    pass
+    latticemodel = lattice.LatticeModel(config_sim)
+    result = results.Results.from_corrector_info(
+        config_sim,
+        len(latticemodel.hstr),
+        len(latticemodel.vstr),
+        len(latticemodel.bpm),
+    )
+    number = 20
+    start_x, start_y = np.shape(result._matrix)
+    disabled_bpms = sorted(
+        np.random.randint(0, high=len(latticemodel.bpm), size=number)
+    )
+    result.remove_bpms(disabled_bpms, len(latticemodel.bpm))
+    assert np.shape(result._matrix) == (start_x - (number * 2), start_y)
