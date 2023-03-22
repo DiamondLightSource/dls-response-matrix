@@ -13,7 +13,7 @@ def test_check_limits_returns_default_if_propsed_delta_is_zero():
     pytac_unit = "pytac.ENG"
     delta_limits = configuration.DELTA_LIMITS[pytac_unit]
     result = configuration.Config._check_limits(0, pytac_unit)
-    assert result == (delta_limits[2], delta_limits[3])
+    assert result == (delta_limits.default, delta_limits.pytac)
 
 
 def test_check_limits_raises_ValueError_if_delta_too_large():
@@ -135,7 +135,7 @@ def test_get_configuration_returns_Config_with_isotime_if_filename_is_None(
     assert config == expected_config
 
 
-def test_write_json_with_expected_args(tmp_path):
+def test_correctly_named_files_when_given_expected_args(tmp_path):
     config = configuration.Config(
         TEST_ISO_TIME,
         TEST_ISO_TIME,
@@ -153,6 +153,6 @@ def test_write_json_with_expected_args(tmp_path):
     assert str(metadata_file)[:8] == "metadata"
 
 
-def test_write_json_missing_config():
+def test_fails_when_writing_json_if_missing_config():
     with pytest.raises(TypeError):
         configuration.Metadata()

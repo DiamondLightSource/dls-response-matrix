@@ -37,14 +37,13 @@ config_incorrect = configuration.Config(
 
 
 @mock.patch("pytac.lattice.Lattice.get_elements", return_value=1)
-def test_LatticeModel_init_using_the_live_machine(mock_get_elements):
+def test_LatticeModel_init_using_the_live_config(mock_get_elements):
     latticemodel = lattice.LatticeModel(config_live)
     assert latticemodel.hstr == 1 and latticemodel._config == config_live
 
 
-def test_LatticeModel_init_using_the_sim_machine():
+def test_LatticeModel_init_using_the_sim_config():
     latticemodel = lattice.LatticeModel(config_sim)
-    print(type(latticemodel.hstr[0]))
     assert (
         type(latticemodel.hstr[0]) is pytac.element.EpicsElement
         and latticemodel._config == config_sim
