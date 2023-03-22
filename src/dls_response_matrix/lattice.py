@@ -35,7 +35,7 @@ class LatticeModel:
         self.bpm = self._lattice.get_elements("BPM")
         self.counter = 0.0
 
-    def disable_correctors(self, remove_correctors: bool) -> List:
+    def disable_correctors(self, remove_correctors: bool) -> List[List[int]]:
         """Removes disabled correctors from the hstr/vstr lists if required."""
 
         if remove_correctors:
@@ -64,7 +64,7 @@ class LatticeModel:
             disabled_hstr_index, disabled_vstr_index = [-1], [-1]
         return [disabled_hstr_index, disabled_vstr_index]
 
-    def disable_bpms(self, remove_bpms: bool) -> List:
+    def disable_bpms(self, remove_bpms: bool) -> List[int]:
         """Tracks disabled bpms for removal after measurement."""
 
         if remove_bpms:
@@ -79,7 +79,7 @@ class LatticeModel:
             disabled_bpm_indices = [-1]
         return disabled_bpm_indices
 
-    def measure_correctors(self):
+    def measure_correctors(self) -> List[List[float]]:
         """Measures all correctors in the lattice."""
         # Only used to save the initial states as correctors are from the lattice, not the enabled corrector lists.
         hstr_values = self._lattice.get_element_values(
@@ -90,7 +90,7 @@ class LatticeModel:
         )
         return [hstr_values, vstr_values]
 
-    def measure_bpms(self):
+    def measure_bpms(self) -> List[float]:
         """Measures all bpms in the lattice."""
         # Measures all BPMs (even disabled) for performance requirements.
         # Repeat CA requests for BPMs due to recurring device issues
