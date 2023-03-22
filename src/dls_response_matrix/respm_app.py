@@ -3,7 +3,8 @@ from pathlib import Path
 
 import cothread
 import pytac  # noqa
-from PyQt5 import QtCore, QtWidgets, uic  # noqa
+from PyQt6 import uic
+from PyQt6.QtWidgets import QMainWindow
 
 from dls_response_matrix import response_matrix as rm
 
@@ -24,7 +25,7 @@ class Definitions:
     split_graphs: bool = False
 
 
-class MainWindow(QtWidgets.QMainWindow):
+class MainWindow(QMainWindow):
     def __init__(self, tooltips, *args, **kwargs):
         super().__init__(*args, **kwargs)
         uic.loadUi(UI_FILENAME, self)
