@@ -107,7 +107,7 @@ class Metadata:
 
     # Initial and disabled states.
     disabled_correctors: List[List[int]] = field(default_factory=list)
-    disabled_bpms: List[List[int]] = field(default_factory=list)
+    disabled_bpms: List[int] = field(default_factory=list)
     initial: List[List[float]] = field(default_factory=list)
 
     def write_json(self, folderpath=None):
