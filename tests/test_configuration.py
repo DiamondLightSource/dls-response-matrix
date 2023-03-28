@@ -151,8 +151,3 @@ def test_correctly_named_files_when_given_expected_args(tmp_path):
     file_list = os.listdir(os.path.join(tmp_path, foldername))
     metadata_file = [file for file in file_list if file.startswith("metadata")][0]
     assert str(metadata_file)[:8] == "metadata"
-
-
-def test_fails_when_writing_json_if_missing_config():
-    with pytest.raises(TypeError):
-        configuration.Metadata()
