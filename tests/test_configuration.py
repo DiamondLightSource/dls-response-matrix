@@ -19,29 +19,29 @@ def test_check_limits_returns_default_if_propsed_delta_is_zero():
 def test_check_limits_raises_ValueError_if_delta_too_large():
     pytac_unit = "pytac.ENG"
     delta_limits = configuration.DELTA_LIMITS[pytac_unit]
-    with pytest.raises(ValueError, match=f"[{delta_limits[1]}, {delta_limits[0]}]"):
-        configuration.Config._check_limits(delta_limits[0] + 1, pytac_unit)
+    with pytest.raises(ValueError, match=f"[{delta_limits.min}, {delta_limits.max}]"):
+        configuration.Config._check_limits(delta_limits.max + 1, pytac_unit)
 
 
 def test_check_limits_raises_ValueError_if_delta_too_small():
     pytac_unit = "pytac.ENG"
     delta_limits = configuration.DELTA_LIMITS[pytac_unit]
-    with pytest.raises(ValueError, match=f"[{delta_limits[1]}, {delta_limits[0]}]"):
-        configuration.Config._check_limits(delta_limits[1] - 1, pytac_unit)
+    with pytest.raises(ValueError, match=f"[{delta_limits.min}, {delta_limits.max}]"):
+        configuration.Config._check_limits(delta_limits.min - 1, pytac_unit)
 
 
 def test_check_limits_raises_ValueError_if_wrong_units_used():
     eng_delta_limits = configuration.DELTA_LIMITS["pytac.ENG"]
     with pytest.raises(ValueError):
-        configuration.Config._check_limits(eng_delta_limits[0], "pytac.PHYS")
+        configuration.Config._check_limits(eng_delta_limits.max, "pytac.PHYS")
 
 
 def test_check_limits_returns_value_using_correct_limits():
     pytac_unit = "pytac.ENG"
     delta_limits = configuration.DELTA_LIMITS[pytac_unit]
-    test_value = delta_limits[0] * 0.5
+    test_value = delta_limits.max * 0.5
     result = configuration.Config._check_limits(test_value, pytac_unit)
-    assert result == (test_value, delta_limits[3])
+    assert result == (test_value, delta_limits.pytac)
 
 
 def test_configure_ports_sets_ports_correctly_for_sim():

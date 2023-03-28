@@ -70,17 +70,17 @@ class Config:
     def _check_limits(proposed_delta: float, pytac_unit: str) -> Tuple[float, str]:
         """Checks the limits and sets delta."""
         proposed_delta = float(proposed_delta)
-        max_delta, min_delta, default_delta, pytac_formatted = DELTA_LIMITS[pytac_unit]
+        delta_limits = DELTA_LIMITS[pytac_unit]
 
-        if not (min_delta <= proposed_delta <= max_delta):
+        if not (delta_limits.min <= proposed_delta <= delta_limits.max):
             raise ValueError(
-                f"Delta of {proposed_delta} is outside of acceptable range: [{min_delta}, {max_delta}]."
+                f"Delta of {proposed_delta} is outside of acceptable range: [{delta_limits.min}, {delta_limits.max}]."
             )
 
         if proposed_delta == 0.0:
-            return default_delta, pytac_formatted
+            return delta_limits.default, delta_limits.pytac
         log.info(f"Delta: {proposed_delta}.")
-        return proposed_delta, pytac_formatted
+        return proposed_delta, delta_limits.pytac
 
     @classmethod
     def _machine_setup(cls, machine_type: str) -> float:
