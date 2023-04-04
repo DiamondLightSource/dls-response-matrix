@@ -23,7 +23,11 @@ class LatticeModel:
         """Initialising the lattice, HSTR, VSTR and BPM arrays."""
         self._config = config
         log.debug(f"Loading pytac lattice: {self._config.ring_mode}")
-        self._lattice = pytac.load_csv.load(self._config.ring_mode)
+        try:
+            self._lattice = pytac.load_csv.load(self._config.ring_mode)
+        except FileNotFoundError as e:
+            print(f"Ringmode {self._config.ring_mode} does not exist in pytac.")
+            raise e
 
         # Required to stop timeout on the machine.
         self._lattice._data_source_manager._data_sources[pytac.LIVE]._devices[
