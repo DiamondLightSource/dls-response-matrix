@@ -44,28 +44,28 @@ def test_check_limits_returns_value_using_correct_limits():
     assert result == (test_value, delta_limits.pytac)
 
 
-def test_configure_ports_sets_ports_correctly_for_sim():
+def test_configure_ports_ports_set_correctly_for_sim():
     port_name = "EPICS_CA_SERVER_PORT"
     sim_info = configuration.MACHINE_SETUP["SIM"]
     configuration.Config._configure_port(sim_info[1])
     assert os.environ.get(port_name) == sim_info[1]
 
 
-def test_configure_ports_sets_ports_correctly_for_live():
+def test_configure_ports_ports_set_correctly_for_live():
     port_name = "EPICS_CA_SERVER_PORT"
     live_info = configuration.MACHINE_SETUP["LIVE"]
     configuration.Config._configure_port(live_info[1])
     assert os.environ.get(port_name) == live_info[1]
 
 
-def test_machine_setup_set_correctly_for_live():
+def test_machine_setup_time_delay_set_correctly_for_live():
     machine_type = "LIVE"
     time_delay = configuration.MACHINE_SETUP[machine_type][0]
     result = configuration.Config._machine_setup(machine_type)
     assert time_delay == result
 
 
-def test_machine_setup_set_correctly_for_sim():
+def test_machine_setup_time_delay_set_correctly_for_sim():
     machine_type = "SIM"
     time_delay = configuration.MACHINE_SETUP[machine_type][0]
     result = configuration.Config._machine_setup(machine_type)
@@ -83,7 +83,7 @@ def test_machine_setup_raises_KeyError_because_incorrect_machine_type():
     return_value=(100.0, "reformatted"),
 )
 @mock.patch("dls_response_matrix.configuration.Config._machine_setup", return_value=3.0)
-def test_get_configuration_returns_Config_with_correct_validation(
+def test_get_configuration_returns_Config_with_correct_values(
     mock_machine_setup, mock_check_limits
 ):
     expected_config = configuration.Config(
@@ -135,7 +135,7 @@ def test_get_configuration_returns_Config_with_isotime_if_filename_is_None(
     assert config == expected_config
 
 
-def test_correctly_named_files_when_given_expected_args(tmp_path):
+def test_get_configuration_files_are_named_correctly_if_given_expected_args(tmp_path):
     config = configuration.Config(
         TEST_ISO_TIME,
         TEST_ISO_TIME,

@@ -15,7 +15,7 @@ config_sim = configuration.Config(
 )
 
 
-def test_results_init_from_corrector_info():
+def test_results_initialised_from_corrector_info():
     latticemodel = lattice.LatticeModel(config_sim)
     result = results.Results.from_corrector_info(
         config_sim,
@@ -26,7 +26,7 @@ def test_results_init_from_corrector_info():
     assert type(result._matrix) is np.ndarray
 
 
-def test_results_init_from_csv(tmp_path):
+def test_results_initialised_from_csv(tmp_path):
     metadata = configuration.Metadata(config_sim)
     latticemodel = lattice.LatticeModel(config_sim)
     metadata.write_json(tmp_path)
@@ -44,7 +44,7 @@ def test_results_init_from_csv(tmp_path):
     assert result_new._config.filename == "NEW_FILENAME"
 
 
-def test_results_remove_bpms():
+def test_results_remove_bpms_works_as_expected():
     latticemodel = lattice.LatticeModel(config_sim)
     result = results.Results.from_corrector_info(
         config_sim,

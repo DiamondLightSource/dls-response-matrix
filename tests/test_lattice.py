@@ -37,12 +37,12 @@ config_incorrect = configuration.Config(
 
 
 @mock.patch("pytac.lattice.Lattice.get_elements", return_value=1)
-def test_LatticeModel_init_using_the_live_config(mock_get_elements):
+def test_LatticeModel_initialised_correctly_using_the_live_config(mock_get_elements):
     latticemodel = lattice.LatticeModel(config_live)
     assert latticemodel.hstr == 1 and latticemodel._config == config_live
 
 
-def test_LatticeModel_init_using_the_sim_config():
+def test_LatticeModel_initialised_correctly_using_the_sim_config():
     latticemodel = lattice.LatticeModel(config_sim)
     assert (
         type(latticemodel.hstr[0]) is pytac.element.EpicsElement
@@ -50,7 +50,7 @@ def test_LatticeModel_init_using_the_sim_config():
     )
 
 
-def test_LatticeModel_init_using_incorrect_config():
+def test_LatticeModel_initialised_incorrectly_using_incorrect_config():
     with pytest.raises(FileNotFoundError):
         lattice.LatticeModel(config_incorrect)
 
@@ -63,7 +63,7 @@ def test_LatticeModel_init_using_incorrect_config():
     "pytac.lattice.Lattice.get_elements",
     return_value=[random.randint(0, 5) for _ in range(10)],
 )
-def test_LatticeModel_disable_correctors_where_true(
+def test_LatticeModel_confirm_disable_correctors_true_removes_disabled_correctors(
     mock_get_elements, mock_get_element_values
 ):
     latticemodel = lattice.LatticeModel(config_sim)
@@ -79,7 +79,7 @@ def test_LatticeModel_disable_correctors_where_true(
     "pytac.lattice.Lattice.get_elements",
     return_value=[random.randint(0, 5) for _ in range(10)],
 )
-def test_LatticeModel_disable_correctors_where_false(
+def test_LatticeModel_confirm_disable_correctors_false_does_not_remove_disabled_correctors(
     mock_get_elements, mock_get_element_values
 ):
     latticemodel = lattice.LatticeModel(config_sim)
@@ -95,7 +95,7 @@ def test_LatticeModel_disable_correctors_where_false(
     "pytac.lattice.Lattice.get_elements",
     return_value=[random.randint(0, 5) for _ in range(10)],
 )
-def test_LatticeModel_disable_bpms_where_true(
+def test_LatticeModel_confirm_disable_bpms_true_removes_disabled_bpms(
     mock_get_elements, mock_get_element_values
 ):
     latticemodel = lattice.LatticeModel(config_sim)
@@ -111,7 +111,7 @@ def test_LatticeModel_disable_bpms_where_true(
     "pytac.lattice.Lattice.get_elements",
     return_value=[random.randint(0, 5) for _ in range(10)],
 )
-def test_LatticeModel_disable_bpms_where_false(
+def test_LatticeModel_confirm_disable_bpms_false_does_not_remove_disabled_bpms(
     mock_get_elements, mock_get_element_values
 ):
     latticemodel = lattice.LatticeModel(config_sim)
@@ -123,7 +123,7 @@ def test_LatticeModel_disable_bpms_where_false(
     "pytac.lattice.EpicsLattice.get_element_values",
     return_value=[-2],
 )
-def test_LatticeModel_measure_correctors(mock_get_element_values):
+def test_LatticeModel_measure_correctors_mocked_values(mock_get_element_values):
     latticemodel = lattice.LatticeModel(config_sim)
     values = latticemodel.measure_correctors()
     assert values == [[-2], [-2]]
@@ -133,7 +133,7 @@ def test_LatticeModel_measure_correctors(mock_get_element_values):
     "pytac.lattice.EpicsLattice.get_element_values",
     return_value=[0, 1, 2],
 )
-def test_LatticeModel_meausure_bpms_passes(mock_get_element_values):
+def test_LatticeModel_meausure_bpms_mocked_values(mock_get_element_values):
     latticemodel = lattice.LatticeModel(config_sim)
     values = latticemodel.measure_bpms()
     assert values == [0, 1, 2, 0, 1, 2]
