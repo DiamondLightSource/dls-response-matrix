@@ -95,7 +95,7 @@ def main(args=None):
 
 def parse_gui_arguments():
     parser = ArgumentParser()
-    parser.add_argument("--version", action="version", version=__version__)
+    parser.add_argument("-v", "--version", action="version", version=__version__)
     return parser.parse_args()
 
 

@@ -35,12 +35,13 @@ dev = [
     "pipdeptree",
     "pre-commit",
     "pydata-sphinx-theme>=0.12",
+    "pytest",
     "pytest-cov",
     "sphinx-autobuild",
     "sphinx-copybutton",
     "sphinx-design",
     "tox-direct",
-    "types-mock"
+    "types-mock",
 ]
 
 [project.scripts]
@@ -83,10 +84,7 @@ addopts = """
     --cov=dls_response_matrix --cov-report term --cov-report xml:cov.xml
     """
 # https://iscinumpy.gitlab.io/post/bound-version-constraints/#watch-for-warnings
-filterwarnings = [
-    "error",
-    "ignore::DeprecationWarning"
-]
+filterwarnings = ["error", "ignore::DeprecationWarning"]
 # Doctest python code in docs, python code in src docstrings, test functions in tests
 testpaths = "docs tests"
 
