@@ -2,6 +2,14 @@ API
 ===
 
 .. automodule:: dls_response_matrix
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+.. automodule:: dls_response_matrix.response_matrix
+    :members:
+    :undoc-members:
+    :show-inheritance:
 
     ``dls_response_matrix``
     -----------------------------------
