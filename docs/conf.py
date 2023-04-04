@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 from subprocess import check_output
 
-import requests
+import requests  # type: ignore
 
 import dls_response_matrix
 
