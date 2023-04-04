@@ -133,7 +133,7 @@ class Metadata:
         foldername = f"RM-{self.config.iso_time}"
         filename = f"metadata-{self.config.filename}.json"
 
-        os.makedirs(os.path.join(cwd, foldername), exist_ok=True)
+        os.makedirs(os.path.join(cwd, foldername))
 
         with open(
             f"{os.path.join(cwd, foldername, filename)}",
