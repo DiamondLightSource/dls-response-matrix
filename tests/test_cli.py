@@ -7,3 +7,13 @@ from dls_response_matrix import __version__
 def test_cli_version():
     cmd = [sys.executable, "-m", "dls_response_matrix", "--version"]
     assert subprocess.check_output(cmd).decode().strip() == __version__
+
+
+def test_version():
+    cmd = ["dls-response-matrix", "--version"]
+    assert subprocess.check_output(cmd).decode().strip() == __version__
+
+
+def test_version_gui():
+    cmd = ["dls-response-matrix-gui", "--version"]
+    assert subprocess.check_output(cmd).decode().strip() == __version__
