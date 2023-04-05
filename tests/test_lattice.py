@@ -50,8 +50,8 @@ def test_LatticeModel_initialised_correctly_using_the_sim_config():
     )
 
 
-def test_LatticeModel_initialised_incorrectly_using_incorrect_config():
-    with pytest.raises(FileNotFoundError):
+def test_LatticeModel_raises_exception_if_ringmode_not_found():
+    with pytest.raises(lattice.RingmodeNotFound):
         lattice.LatticeModel(config_incorrect)
 
 

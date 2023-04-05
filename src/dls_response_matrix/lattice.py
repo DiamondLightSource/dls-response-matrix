@@ -16,6 +16,10 @@ class BeamPositionMonitorException(Exception):
     pass
 
 
+class RingmodeNotFound(Exception):
+    pass
+
+
 class LatticeModel:
     """LatticeModel class stores all lattice data and functions."""
 
@@ -25,9 +29,10 @@ class LatticeModel:
         log.debug(f"Loading pytac lattice: {self._config.ring_mode}")
         try:
             self._lattice = pytac.load_csv.load(self._config.ring_mode)
-        except FileNotFoundError as e:
-            print(f"Ringmode {self._config.ring_mode} does not exist in pytac.")
-            raise e
+        except FileNotFoundError:
+            message = f"Ringmode {self._config.ring_mode} does not exist in pytac."
+            log.critical(message)
+            raise RingmodeNotFound(message)
 
         # Required to stop timeout on the machine.
         self._lattice._data_source_manager._data_sources[pytac.LIVE]._devices[
