@@ -1,3 +1,4 @@
+import glob
 import os
 from unittest import mock
 
@@ -148,6 +149,6 @@ def test_get_configuration_files_are_named_correctly_if_given_expected_args(tmp_
     metadata = configuration.Metadata(config)
     metadata.write_json(tmp_path)
     foldername = f"RM-{config.iso_time}"
-    file_list = os.listdir(os.path.join(tmp_path, foldername))
-    metadata_file = [file for file in file_list if file.startswith("metadata")][0]
-    assert str(metadata_file)[:8] == "metadata"
+    filename = os.path.join(tmp_path, foldername, "metadata*")
+    metadata_file = glob.glob(filename)[0]
+    assert ".json" in metadata_file
