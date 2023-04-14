@@ -12,8 +12,9 @@ import cothread
 import matplotlib.pyplot as plt
 import numpy as np
 import pytac
-from cothread.catools import FORMAT_CTRL, caget
+from cothread.catools import FORMAT_CTRL, ca_nothing, caget
 from matplotlib.colors import TwoSlopeNorm
+from pytac.cothread_cs import ControlSystemException
 
 ISO_TIME_FORMAT_STRING: str = "%Y%m%dT%H%M%S"
 """ISO 8601 in the format YYYYMMDDThhmmss. Note. T seperates date and time."""
@@ -157,7 +158,7 @@ class Config:
 
     @staticmethod
     def check_limits(proposed_delta: float, pytac_unit: str) -> tuple[float, str]:
-        """Checks the proposed delta is within the approved limits.
+        """Check the proposed delta is within the approved limits.
 
         Args:
             proposed_delta: The size of the proposed corrector step in
@@ -169,7 +170,7 @@ class Config:
 
         Returns:
             Tuple[float, str]: A tuple of the approved corrector step and the
-                formatted pytac string.
+                unit in the pytac format.
         """
         proposed_delta = float(proposed_delta)
         max_delta, min_delta, default_delta, pytac_formatted = DELTA_LIMITS[pytac_unit]
@@ -278,7 +279,7 @@ class LatticeModel:
     """LatticeModel class stores all lattice data and functions."""
 
     def __init__(self, config: Config):
-        """Initialising the lattice, HSTR, VSTR and BPM arrays.
+        """Initialise the lattice, HSTR, VSTR and BPM arrays.
 
         Args:
             config: The configuration for the process.
@@ -307,7 +308,7 @@ class LatticeModel:
     def disable_correctors(
         self, remove_correctors: bool
     ) -> tuple[list[int], list[int]]:
-        """Removes disabled correctors from the hstr and vstr lists.
+        """Remove disabled correctors from the hstr and vstr lists.
 
         This will return -1 if remove_correctors = False, to clearly show a difference
         between the choice of not removing disabled elements and if no elements are
@@ -348,7 +349,7 @@ class LatticeModel:
         return disabled_hstr_index, disabled_vstr_index
 
     def disable_bpms(self, remove_bpms: bool) -> list[int]:
-        """Removes disabled bpms from the hstr and vstr lists
+        """Remove disabled bpms from the hstr and vstr lists
 
         This will return -1 if remove_bpms = False, to clearly show a difference
         between the choice of not removing disabled elements and if no elements are
@@ -390,9 +391,9 @@ class LatticeModel:
         return hstr_values, vstr_values
 
     def measure_bpms(self) -> list:
-        """Measures all bpms in the lattice.
+        """Measure all bpms in the lattice.
 
-        Measures all BPMs (even disabled) for performance requirements. Attempts
+        Measure all BPMs (even disabled) for performance requirements. Attempts
         to measure up to MAX_BPM_ATTEMPTS, due to recurring device issues.
 
         Raises:
@@ -409,8 +410,7 @@ class LatticeModel:
                 bpm_y = self._lattice.get_element_values(
                     "BPM", "y", pytac.RB, self._config.pytac_unit
                 )
-            except Exception as e:
-                # TODO: except ca_nothing or ControlSystemException or Exception as e:
+            except (ca_nothing, ControlSystemException) as e:
                 log.error(f"Failure no: {attempt} to retrieve BPM values:\n{e}")
                 if attempt < MAX_BPM_ATTEMPTS:
                     cothread.Sleep(1)
@@ -430,7 +430,7 @@ class LatticeModel:
         results: Results,
         progress_callback: Callable[[float], Optional[float]] = lambda x: None,
     ):
-        """Runs the response matrix process on each axis seperately.
+        """Run the response matrix process on each axis separately.
 
         Args:
             results: Results class object.
@@ -452,7 +452,7 @@ class LatticeModel:
         offset: int,
         progress_callback: Callable[[float], Optional[float]] = lambda x: None,
     ):
-        """Calculates the response matrix for a given set of correctors, by stepping each corrector by delta and measuring the change in beam position.
+        """Calculate the response matrix for a given set of correctors, by stepping each corrector by delta and measuring the change in beam position.
 
         Args:
             results: A Results class object.
@@ -511,7 +511,7 @@ class Results:
     def from_corrector_info(
         cls, config: Config, x_correctors: int, y_correctors: int, bpms: int
     ):
-        """Creates a matrix of the appropriate size for the Results object.
+        """Create a matrix of the appropriate size for the Results object.
 
         Args:
             config: A populated Config object.
@@ -532,7 +532,10 @@ class Results:
         full_folderpath: str,
         new_filename: str,
     ):
-        """Setup of the Results object when loading the files.
+        """Load and setup the Results object when given a valid folderpath.
+
+        The folderpath must contain a .json with "metadata" in the name, alongside
+        a .csv file with "rawdata" in the name.
 
         Args:
             full_folderpath: The path to the folder with old data.
@@ -570,7 +573,7 @@ class Results:
         self._matrix[:, index] = bpm_values
 
     def remove_bpms(self, disabled_bpms: list, x_bpms: int):
-        """Removes inactive BPMs from the matrix.
+        """Remove inactive BPMs from the matrix.
 
         Args:
             disabled_bpms: The list of BPM indices to remove.
@@ -599,7 +602,7 @@ class Results:
         )
 
     def plot(self, split: Optional[bool] = False):
-        """Plots the matrix.
+        """Plot the matrix.
 
         Args:
             split: If the matrix is already split,
@@ -676,7 +679,7 @@ def response_matrix(
     split_graphs: bool,
     progress_callback: Callable[[float], Optional[float]] = lambda x: None,
 ):
-    """Calculates the response matrix and times the process.
+    """Calculate the response matrix and times the process.
 
     Args:
         filename: The given filename of the generated files.
