@@ -117,7 +117,8 @@ class Config:
         try:
             if not (min_delta <= proposed_delta <= max_delta):
                 raise ValueError(
-                    f"Delta of {proposed_delta} is outside of acceptable range: [{min_delta}, {max_delta}]."
+                    f"Delta of {proposed_delta} is outside of acceptable range:"
+                    f" [{min_delta}, {max_delta}]."
                 )
         except ValueError as e:
             log.critical(e, exc_info=True)
@@ -145,7 +146,8 @@ class Config:
 
 @dataclass
 class Metadata:
-    """Metadata class stores all configuration data and provides a function to write this data to a .json file."""
+    """Metadata class stores all configuration data and provides a function to write
+    this data to a .json file."""
 
     # Including the Config data.
     config: Config
@@ -167,7 +169,8 @@ class Metadata:
             "Time delay": self.config.time_delay,
             "Delta": self.config.delta,
             "Pytac units": self.config.pytac_unit,
-            # Disabled item elements. If the value is -1, then the item was not requested.
+            # Disabled item elements. If the value is -1, then the item was not
+            # requested.
             "Disabled correctors (Python indices): X, Y": self.disabled_correctors,
             "Disabled BPMs (Python indices)": self.disabled_bpms,
             # The initial corrector values are for all correctors in the full lattice.
@@ -257,7 +260,8 @@ class LatticeModel:
 
     def measure_correctors(self):
         """Measures all correctors in the lattice."""
-        # Only used to save the initial states as correctors are from the lattice, not the enabled corrector lists.
+        # Only used to save the initial states as correctors are from the lattice, not
+        # the enabled corrector lists.
         hstr_values = self._lattice.get_element_values(
             "HSTR", "x_kick", pytac.RB, self._config.pytac_unit
         )
@@ -307,7 +311,8 @@ class LatticeModel:
     def calculate_axis_response(
         self, results, correctors: list, field: str, offset: int, progress_callback
     ):
-        """Calculates the response matrix for a given set of correctors, by stepping each corrector by delta and measuring the change in beam position.
+        """Calculates the response matrix for a given set of correctors, by stepping
+        each corrector by delta and measuring the change in beam position.
 
         Arguments:
             correctors: A list of the corrector elements.
@@ -328,7 +333,8 @@ class LatticeModel:
                 self._config.pytac_unit,
             )
             log.debug(f"Stepped {corrector.get_pv_name(field, pytac.RB)[:-2]}")
-            # The sleeps ensure that the machine has settled/virtac has calculated changes.
+            # The sleeps ensure that the machine has settled/virtac has calculated
+            # changes.
             cothread.Sleep(self._config.time_delay)
             final_bpm = self.measure_bpms()
             corrector.set_value(field, initial_corr_values, self._config.pytac_unit)
@@ -341,7 +347,8 @@ class LatticeModel:
 
 
 class Results:
-    """The Results class handles the data, providing functions to store, remove, save, split and plot."""
+    """The Results class handles the data, providing functions to store, remove, save,
+    split and plot."""
 
     def __init__(
         self, config: Config, matrix: np.ndarray, filepath: Union[str, None] = None
