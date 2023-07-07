@@ -7,6 +7,7 @@ from PyQt6 import uic
 from PyQt6.QtWidgets import QMainWindow
 
 from dls_response_matrix import response_matrix as rm
+from dls_response_matrix.configuration import DELTA_LIMITS
 
 _qapp = cothread.iqt()
 
@@ -59,7 +60,7 @@ class MainWindow(QMainWindow):
         )
 
     def set_limits(self):
-        maximum, minimum, default, name = rm.DELTA_LIMITS[
+        maximum, minimum, default, name = DELTA_LIMITS[
             self.pytac_unit_input.currentText()
         ]
         self.proposed_delta_input.setMaximum(maximum)
