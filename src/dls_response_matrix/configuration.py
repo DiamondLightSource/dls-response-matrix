@@ -1,27 +1,34 @@
 """configuration.py includes all classes and functions related to
 Config and Metadata."""
+from __future__ import annotations
 
 import json
 import logging as log
 import os
 from dataclasses import dataclass, field
-from typing import List, NamedTuple, Tuple
+from typing import Any, NamedTuple, Optional, Sequence, Tuple
 
 import pytac
 
-DeltaLimits = NamedTuple(
+DeltaLimits: NamedTuple = NamedTuple(
     "DeltaLimits", [("max", float), ("min", float), ("default", float), ("pytac", str)]
 )
+"""The base structure containing information about the limits of delta."""
 DELTA_LIMITS = {
     "pytac.ENG": DeltaLimits(0.1, -0.1, 0.05, pytac.ENG),
     "pytac.PHYS": DeltaLimits(2.5e-5, -2.5e-5, 1e-5, pytac.PHYS),
 }
+"""Dictionary containing the completed information for ENG or PHYS units."""
 
-MachineSetup = NamedTuple("MachineSetup", [("time_delay", float), ("port", str)])
-MACHINE_SETUP = {
+MachineSetup: NamedTuple = NamedTuple(
+    "MachineSetup", [("time_delay", float), ("port", str)]
+)
+"""The base structure containing the time delay and port."""
+MACHINE_SETUP: dict = {
     "SIM": MachineSetup(1.2, "6064"),
     "LIVE": MachineSetup(0.25, "5054"),
 }
+"""Dictionary containing the completed information for the SIM or LIVE machine."""
 
 
 @dataclass
@@ -46,11 +53,25 @@ class Config:
         machine_type: str,
         proposed_delta: float,
     ):
-        """Get the standard configuration object.
+        """Initialise the standard configuration object.
 
-        Should only be run once and before accessing catools.
+        Note:
+            Should only be run once, before accessing cothread.catools.
+
+        Args:
+            filename: The filename prefix of the generated files. Defaults to the
+                current ISO time.
+            iso_time: ISO 8601 time.
+            pytac_unit: The unit type as found in pytac.
+            ring_mode: The name of the desired ringmode.
+            machine_type: The machine type, either "SIM" for simulation or "LIVE"
+                for the live machine.
+            proposed_delta: The size of the proposed corrector step in
+                pytac_units.
+
+        Returns:
+            The Config object.
         """
-        # If no filename is provided, defaults to ISO time.
         if filename is None:
             filename = iso_time
         log.info(f"Filename: {filename}, Iso Time: {iso_time}.")
@@ -69,7 +90,20 @@ class Config:
 
     @staticmethod
     def _check_limits(proposed_delta: float, pytac_unit: str) -> Tuple[float, str]:
-        """Checks the limits and sets delta."""
+        """Check the proposed delta is within the approved limits.
+
+        Args:
+            proposed_delta: The size of the proposed corrector step in
+                pytac_units.
+            pytac_unit: The unit type as found in pytac.
+
+        Raises:
+            ValueError: If propsed_delta is outside of the range set my DELTA_LIMITS.
+
+        Returns:
+            Tuple[float, str]: A tuple of the approved corrector step and the
+                unit in the pytac format.
+        """
         proposed_delta = float(proposed_delta)
         delta_limits = DELTA_LIMITS[pytac_unit]
 
@@ -86,16 +120,26 @@ class Config:
 
     @classmethod
     def _machine_setup(cls, machine_type: str) -> float:
-        """Sets up the time delay for corrector stepping"""
+        """Set up time delay and port.
 
+        Args:
+            machine_type: The setup string of the machine, either SIM for
+                simulation or LIVE for the live machine.
+
+        Returns:
+            The delay between each corrector step in seconds.
+        """
         time_delay, port = MACHINE_SETUP[machine_type]
         cls._configure_port(port)
         return time_delay
 
     @staticmethod
     def _configure_port(port: str):
-        """Configures the port"""
+        """Set up the Channel Access Port.
 
+        Args:
+            port: The port number.
+        """
         os.environ["EPICS_CA_SERVER_PORT"] = port
         log.debug(f"'EPICS_CA_SERVER_PORT' set to {port}")
 
@@ -107,14 +151,27 @@ class Metadata:
 
     # Including the Config data.
     config: Config
+    """config: The configuration for the process."""
 
     # Initial and disabled states.
-    disabled_correctors: List[List[int]] = field(default_factory=list)
-    disabled_bpms: List[int] = field(default_factory=list)
-    initial: List[List[float]] = field(default_factory=list)
+    # Initial and disabled states.
+    disabled_correctors: tuple[Sequence[Any], Sequence[Any]] = field(
+        default_factory=lambda: (list(), list())
+    )
+    """disabled_correctors: Lattice indices of disabled correctors."""
+    disabled_bpms: list[int] = field(default_factory=list)
+    """disabled_bpms: Lattice indices of disabled BPMs."""
+    initial: tuple[Sequence[Any], Sequence[Any]] = field(
+        default_factory=lambda: (list(), list())
+    )
+    """initial: The initial setpoints of all correctors."""
 
-    def write_json(self, folderpath=None):
-        """This function writes the metadata to a .json file."""
+    def write_json(self, folderpath: Optional[str] = None):
+        """Write the metadata to a .json file.
+
+        Args:
+            folderpath: An optional folderpath to save the json to.
+        """
         log.info("Saving metadata .json.")
         dictionary = {
             # Main metadata.

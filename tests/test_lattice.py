@@ -84,7 +84,7 @@ def test_confirm_disable_correctors_false_does_not_remove_disabled_correctors(
 ):
     latticemodel = lattice.LatticeModel(config_sim)
     disabled = latticemodel.disable_correctors(False)
-    assert disabled == [[-1], [-1]]
+    assert disabled == ([-1], [-1])
 
 
 @mock.patch(
@@ -126,7 +126,7 @@ def test_LatticeModel_confirm_disable_bpms_false_does_not_remove_disabled_bpms(
 def test_LatticeModel_measure_correctors_mocked_values(mock_get_element_values):
     latticemodel = lattice.LatticeModel(config_sim)
     values = latticemodel.measure_correctors()
-    assert values == [[-2], [-2]]
+    assert values == ([-2], [-2])
 
 
 @mock.patch(

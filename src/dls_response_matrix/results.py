@@ -1,10 +1,11 @@
 """results.py includes all classes and functions related to Results
 including plotting and saving."""
+from __future__ import annotations
 
 import json
 import logging as log
 import os
-from typing import Union
+from typing import Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -14,6 +15,8 @@ from dls_response_matrix.configuration import Config
 
 
 class NewFilenameRequired(Exception):
+    """Raised when a duplicate filename is passed."""
+
     pass
 
 
@@ -22,18 +25,36 @@ class Results:
     split and plot."""
 
     def __init__(
-        self, config: Config, matrix: np.ndarray, filepath: Union[str, None] = None
+        self, config: Config, matrix: np.ndarray, filepath: Optional[str] = None
     ):
+        """Setup of the Results class.
+
+        Args:
+            config: A populated Config object.
+            matrix: A matrix that contains a row for each BPM, and a
+                column for each corrector magnet.
+            filepath: An optional filepath to save the
+                files to. Defaults to None.
+        """
         self._config: Config = config
         self._matrix: np.ndarray = matrix
-        self._filepath: Union[str, None] = filepath
+        self._filepath: Optional[str] = filepath
 
     @classmethod
     def from_corrector_info(
         cls, config: Config, x_correctors: int, y_correctors: int, bpms: int
     ):
-        """Loads the Results object when performing on the machine."""
+        """Create a matrix of the appropriate size for the Results object.
 
+        Args:
+            config: A populated Config object.
+            x_correctors: The number of horizontal correctors.
+            y_correctors: The number of vertical correctors
+            bpms: The number of BPMs.
+
+        Returns:
+            A Results object.
+        """
         matrix: np.ndarray = np.zeros(shape=(2 * bpms, x_correctors + y_correctors))
         return cls(config, matrix)
 
@@ -43,7 +64,21 @@ class Results:
         full_folderpath: str,
         new_filename: str,
     ):
-        """Loads the Results object from a csv."""
+        """Load and setup the Results object when given a valid folderpath.
+
+        The folderpath must contain a .json with "metadata" in the name, alongside
+        a .csv file with "rawdata" in the name.
+
+        Args:
+            full_folderpath: The path to the folder with old data.
+            new_filename: The new filename that newly generated files will have.
+
+        Returns:
+            A Results object.
+
+        Raises:
+            NewFilenameRequired: If the filename is identical to an existing file.
+        """
         file_list = os.listdir(full_folderpath)
         metadata_file = [file for file in file_list if file.startswith("metadata")][0]
         rawdata_file = [file for file in file_list if file.startswith("rawdata")][0]
@@ -68,12 +103,22 @@ class Results:
         )
         return cls(config, matrix, full_folderpath)
 
-    def store(self, bpm_values: list, index: int):
-        """Stores the data in the correct index of the matrix."""
+    def store(self, bpm_values: np.ndarray, index: int):
+        """Store the BPM values in the correct index of the matrix.
+
+        Args:
+            bpm_values: The BPM values.
+            index: The index of the BPM from which the values came.
+        """
         self._matrix[:, index] = bpm_values
 
     def remove_bpms(self, disabled_bpms: list, x_bpms: int):
-        """Removes inactive bpm rows from the matrix."""
+        """Remove inactive BPMs from the matrix.
+
+        Args:
+            disabled_bpms: The list of BPM indices to remove.
+            x_bpms: The number of horizontal BPMs.
+        """
         log.info("Removed inactive bpms.")
         # X bpms
         _disabled_bpm_list = [index for index in disabled_bpms]
@@ -96,8 +141,13 @@ class Results:
             self._matrix,
         )
 
-    def plot(self, split=False):
-        """Plots the matrix."""
+    def plot(self, split: Optional[bool] = False):
+        """Plot the matrix.
+
+        Args:
+            split: If the matrix is already split,
+                then plot each quadrant seperately. Defaults to False.
+        """
         cwd = self._filepath if self._filepath is not None else os.getcwd()
         foldername = f"RM-{self._config.iso_time}"
 

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging as log
 import os
 from datetime import datetime
@@ -8,38 +10,62 @@ from dls_response_matrix.configuration import Config, Metadata
 from dls_response_matrix.lattice import LatticeModel
 from dls_response_matrix.results import Results
 
-DEFAULT_MACHINE_MODE = "I04"
+ISO_TIME_FORMAT_STRING: str = "%Y%m%dT%H%M%S"
+"""ISO 8601 in the format YYYYMMDDThhmmss. Note. T seperates date and time."""
 
-CONSOLE_LOG_FORMAT = "%(levelname)-7s: [%(filename)s:%(lineno)d] — %(message)s"
-FILE_LOG_FORMAT = (
+DEFAULT_MACHINE_MODE: str = "I04"
+"""Default machine ringmode."""
+
+CONSOLE_LOG_FORMAT: str = "%(levelname)-7s: [%(filename)s:%(lineno)d] — %(message)s"
+"""Logging formatting for console output."""
+FILE_LOG_FORMAT: str = (
     "%(levelname)-7s: %(asctime)s — [%(filename)s:%(lineno)d] — %(message)s"
 )
+"""Logging formatting for file output."""
 
 
-def get_ring_modes():  # Needed for UI initialisation.
+def get_ring_modes() -> tuple[list, str]:
+    """Get the current and available ringmodes.
+    This is required for UI initialisation.
+
+    Returns:
+        A tuple containing the list of ring modes, and the current ring mode.
+    """
     ring_mode_list = caget("SR-CS-RING-01:MODE", format=FORMAT_CTRL).enums
     current_ringmode = caget("SR-CS-RING-01:MODE", datatype=str)
     return ring_mode_list, current_ringmode
 
 
-def get_new_logger(isotime):
+def get_new_logger(
+    isotime: str, console_log_level: int = log.INFO, file_log_level: int = log.DEBUG
+):
+    """Initialise and setup the logger.
+
+    Setting up logging levels for console and file readout.
+
+    Args:
+        isotime: ISO 8601 time string.
+        console_log_level : The minimum logging level to be returned in the console.
+        file_log_level: The minimum logging level to be returned in the file.
+    """
     cwd = os.getcwd()
     foldername = f"RM-{isotime}"
     filename = "log.log"
-    os.makedirs(os.path.join(cwd, foldername), exist_ok=True)
+    try:
+        os.mkdir(os.path.join(cwd, foldername))
+    except FileExistsError:
+        pass
 
     logger = log.getLogger()
     logger.setLevel(log.NOTSET)
-
     # Console handler
     console_handler = log.StreamHandler()
-    console_handler.setLevel(log.INFO)
+    console_handler.setLevel(console_log_level)
     console_handler.setFormatter(log.Formatter(CONSOLE_LOG_FORMAT))
     logger.addHandler(console_handler)
-
     # File handler
     file_handler = log.FileHandler(os.path.join(cwd, foldername, filename))
-    file_handler.setLevel(log.DEBUG)
+    file_handler.setLevel(file_log_level)
     file_handler.setFormatter(log.Formatter(FILE_LOG_FORMAT))
     logger.addHandler(file_handler)
 
@@ -58,7 +84,7 @@ def response_matrix(
     """Response_matrix calculates the response matrix and times the process."""
     # Timing setup.
     start = datetime.now()
-    iso_time = start.strftime("%Y%m%dT%H%M%S")
+    iso_time = start.strftime(ISO_TIME_FORMAT_STRING)
     get_new_logger(iso_time)
 
     # Config setup.

@@ -68,6 +68,8 @@ nitpick_ignore = [
     ("py:class", "disabled_correctors"),
     ("py:class", "disabled_bpms"),
     ("py:class", "initial"),
+    ("py:class", "PyQt6.QtWidgets.QMainWindow"),
+    ("py:exc", "NewFilenameRequired"),
 ]
 
 # Both the class’ and the __init__ method’s docstring are concatenated and

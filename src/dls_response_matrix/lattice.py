@@ -1,8 +1,9 @@
 """lattice.py includes all classes and functions related to the lattice
 and the response-matrix process."""
+from __future__ import annotations
 
 import logging as log
-from typing import List
+from typing import Any, Callable, List, Optional, Sequence
 
 import cothread
 import numpy as np
@@ -10,11 +11,15 @@ import pytac
 from pytac import cothread_cs
 
 from dls_response_matrix.configuration import Config
+from dls_response_matrix.results import Results
 
-MAX_BPM_ATTEMPTS = 3
+MAX_BPM_ATTEMPTS: int = 3
+"""Maximum number of BPM connection attempts before failure."""
 
 
 class BeamPositionMonitorException(Exception):
+    """Exception associated with recieving no response from BPMs."""
+
     pass
 
 
@@ -22,9 +27,18 @@ class LatticeModel:
     """LatticeModel class stores all lattice data and functions."""
 
     def __init__(self, config: Config):
-        """Initialising the lattice, HSTR, VSTR and BPM arrays."""
-        self._config = config
+        """Initialise the lattice, HSTR, VSTR and BPM arrays.
 
+        Args:
+            config: The configuration for the process.
+
+        Attributes:
+            hstr: All horizontal corrrector objects in the lattice.
+            vstr: All vertical corrrector objects in the lattice.
+            bpm: All beam position monitor objects in the lattice.
+            counter: The progress through the process as an int. 1 = 0.5% of process.
+        """
+        self._config: Config = config
         # Required to stop timout and to wait for caputs.
         _cs = cothread_cs.CothreadControlSystem(timeout=10.0, wait=True)
 
@@ -36,9 +50,22 @@ class LatticeModel:
         self.bpm = self._lattice.get_elements("BPM")
         self.counter = 0.0
 
-    def disable_correctors(self, remove_correctors: bool) -> List[List[int]]:
-        """Removes disabled correctors from the hstr/vstr lists if required."""
+    def disable_correctors(
+        self, remove_correctors: bool
+    ) -> tuple[list[int], list[int]]:
+        """Remove disabled correctors from the hstr and vstr lists.
 
+        This will return -1 if remove_correctors = False, to clearly show a difference
+        between the choice of not removing disabled elements and if no elements are
+        disabled.
+
+        Args:
+            remove_correctors: If True, remove disabled correctors.
+
+        Returns:
+            A tuple containing lists for which correctors are disabled horizontally
+                and vertically.
+        """
         if remove_correctors:
             log.info("Removing disabled correctors")
             hstr_array = self._lattice.get_element_values("HSTR", "h_sofb_disabled")
@@ -63,11 +90,21 @@ class LatticeModel:
             ]
         else:
             disabled_hstr_index, disabled_vstr_index = [-1], [-1]
-        return [disabled_hstr_index, disabled_vstr_index]
+        return (disabled_hstr_index, disabled_vstr_index)
 
     def disable_bpms(self, remove_bpms: bool) -> List[int]:
-        """Tracks disabled bpms for removal after measurement."""
+        """Remove disabled bpms from the hstr and vstr lists
 
+        This will return -1 if remove_bpms = False, to clearly show a difference
+        between the choice of not removing disabled elements and if no elements are
+        disabled.
+
+        Args:
+            remove_bpms: If True, remove disabled BPMs.
+
+        Returns:
+            Returns a list of which BPMs are disabled.
+        """
         if remove_bpms:
             log.info("Removing disabled bpms")
             self._bpm_inactive = self._lattice.get_element_values("BPM", "enabled")
@@ -80,8 +117,12 @@ class LatticeModel:
             disabled_bpm_indices = [-1]
         return disabled_bpm_indices
 
-    def measure_correctors(self) -> List[List[float]]:
-        """Measures all correctors in the lattice."""
+    def measure_correctors(self) -> tuple[Sequence[Any], Sequence[Any]]:
+        """Measures all corrector setpoints in the lattice.
+
+        Returns:
+            Horizontal and vertical corrector setpoints.
+        """
         # Only used to save the initial states as correctors are from the lattice,
         # not the enabled corrector lists.
         hstr_values = self._lattice.get_element_values(
@@ -90,10 +131,20 @@ class LatticeModel:
         vstr_values = self._lattice.get_element_values(
             "VSTR", "y_kick", pytac.RB, self._config.pytac_unit
         )
-        return [hstr_values, vstr_values]
+        return (hstr_values, vstr_values)
 
-    def measure_bpms(self):
-        """Measures all bpms in the lattice."""
+    def measure_bpms(self) -> List:
+        """Measure all bpms in the lattice.
+
+        Measure all BPMs (even disabled) for performance requirements. Attempts
+        to measure up to MAX_BPM_ATTEMPTS, due to recurring device issues.
+
+        Raises:
+            BeamPositionMonitorException: Failed to retrieve BPM values.
+
+        Returns:
+            Horizontal and vertical BPM values.
+        """
         # Measures all BPMs (even disabled) for performance requirements.
         # Repeat CA requests for BPMs due to recurring device issues
         for attempt in range(1, MAX_BPM_ATTEMPTS + 1):
@@ -120,8 +171,18 @@ class LatticeModel:
                 break
         return bpm_x + bpm_y
 
-    def calculate_responses(self, results, progress_callback):
-        """Calls the response matrix on both HSTRs and VSTRs."""
+    def calculate_responses(
+        self,
+        results: Results,
+        progress_callback: Callable[[float], Optional[float]] = lambda x: None,
+    ):
+        """Run the response matrix process on each axis separately.
+
+        Args:
+            results: Results class object.
+            progress_callback: The progress through the process as an int. 1 = 0.5%
+                of process.
+        """
         self.counter = 0
         log.info("Starting X axis response matrix.")
         self.calculate_axis_response(results, self.hstr, "x_kick", 0, progress_callback)
@@ -131,17 +192,24 @@ class LatticeModel:
         )
 
     def calculate_axis_response(
-        self, results, correctors: list, field: str, offset: int, progress_callback
+        self,
+        results: Results,
+        correctors: list,
+        field: str,
+        offset: int,
+        progress_callback: Callable[[float], Optional[float]] = lambda x: None,
     ):
-        """Calculates the response matrix for a given set of correctors, by stepping
+        """Calculate the response matrix for a given set of correctors, by stepping
         each corrector by delta and measuring the change in beam position.
 
-        Arguments:
+        Args:
+            results: A Results class object.
             correctors: A list of the corrector elements.
             field: The field on the correctors to change.
             offset: The offset for appending data to the matrix.
+            progress_callback: The progress through the process as an int. 1 = 0.5%
+                of process.
         """
-
         length = len(correctors)
 
         for index, corrector in enumerate(correctors):
