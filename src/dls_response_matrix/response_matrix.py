@@ -120,7 +120,6 @@ class Config:
         machine_type: str,
         proposed_delta: float,
     ) -> Config:
-
         """Initialise the standard configuration object.
 
         Note:
@@ -679,7 +678,7 @@ def response_matrix(
     split_graphs: bool,
     progress_callback: Callable[[float], Optional[float]] = lambda x: None,
 ):
-    """Calculate the response matrix and times the process.
+    """Calculate the response matrix and time the process.
 
     Args:
         filename: The given filename of the generated files.
