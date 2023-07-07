@@ -11,6 +11,7 @@ import numpy as np
 import pytac
 from cothread.catools import FORMAT_CTRL, caget
 from matplotlib.colors import TwoSlopeNorm
+from pytac import cothread_cs
 
 DEFAULT_MACHINE_MODE = "I04"
 
@@ -201,13 +202,12 @@ class LatticeModel:
     def __init__(self, config: Config):
         """Initialising the lattice, HSTR, VSTR and BPM arrays."""
         self._config = config
-        log.debug(f"Loading pytac lattice: {self._config.ring_mode}")
-        self._lattice = pytac.load_csv.load(self._config.ring_mode)
 
-        # Required to stop timeout on the machine.
-        self._lattice._data_source_manager._data_sources[pytac.LIVE]._devices[
-            "beam_current"
-        ]._cs._timeout = 10.0
+        # Required to stop timout and to wait for caputs.
+        _cs = cothread_cs.CothreadControlSystem(timeout=10.0, wait=True)
+
+        log.debug(f"Loading pytac lattice: {self._config.ring_mode}")
+        self._lattice = pytac.load_csv.load(self._config.ring_mode, _cs)
 
         self.hstr = self._lattice.get_elements("HSTR")
         self.vstr = self._lattice.get_elements("VSTR")
