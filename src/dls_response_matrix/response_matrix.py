@@ -26,18 +26,17 @@ def get_new_logger(isotime):
     cwd = os.getcwd()
     foldername = f"RM-{isotime}"
     filename = "log.log"
-    try:
-        os.mkdir(os.path.join(cwd, foldername))
-    except FileExistsError:
-        pass
+    os.makedirs(os.path.join(cwd, foldername), exist_ok=True)
 
     logger = log.getLogger()
     logger.setLevel(log.NOTSET)
+
     # Console handler
     console_handler = log.StreamHandler()
     console_handler.setLevel(log.INFO)
     console_handler.setFormatter(log.Formatter(CONSOLE_LOG_FORMAT))
     logger.addHandler(console_handler)
+
     # File handler
     file_handler = log.FileHandler(os.path.join(cwd, foldername, filename))
     file_handler.setLevel(log.DEBUG)

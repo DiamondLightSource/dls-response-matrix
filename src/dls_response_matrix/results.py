@@ -1,3 +1,6 @@
+"""results.py includes all classes and functions related to Results
+including plotting and saving."""
+
 import json
 import logging as log
 import os
@@ -8,6 +11,10 @@ import numpy as np
 from matplotlib.colors import TwoSlopeNorm
 
 from dls_response_matrix.configuration import Config
+
+
+class NewFilenameRequired(Exception):
+    pass
 
 
 class Results:
@@ -44,6 +51,11 @@ class Results:
         matrix = np.genfromtxt(os.path.join(full_folderpath, rawdata_file))
         with open(os.path.join(full_folderpath, metadata_file)) as f:
             metadata = json.load(f)
+
+        if metadata["Filename"] == new_filename:
+            raise NewFilenameRequired(
+                "New filename cannot be the same as old filename."
+            )
 
         config = Config(
             new_filename,

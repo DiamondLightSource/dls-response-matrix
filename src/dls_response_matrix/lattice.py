@@ -1,3 +1,6 @@
+"""lattice.py includes all classes and functions related to the lattice
+and the response-matrix process."""
+
 import logging as log
 from typing import List
 
@@ -33,7 +36,7 @@ class LatticeModel:
         self.bpm = self._lattice.get_elements("BPM")
         self.counter = 0.0
 
-    def disable_correctors(self, remove_correctors: bool) -> List:
+    def disable_correctors(self, remove_correctors: bool) -> List[List[int]]:
         """Removes disabled correctors from the hstr/vstr lists if required."""
 
         if remove_correctors:
@@ -62,7 +65,7 @@ class LatticeModel:
             disabled_hstr_index, disabled_vstr_index = [-1], [-1]
         return [disabled_hstr_index, disabled_vstr_index]
 
-    def disable_bpms(self, remove_bpms: bool) -> List:
+    def disable_bpms(self, remove_bpms: bool) -> List[int]:
         """Tracks disabled bpms for removal after measurement."""
 
         if remove_bpms:
@@ -77,10 +80,10 @@ class LatticeModel:
             disabled_bpm_indices = [-1]
         return disabled_bpm_indices
 
-    def measure_correctors(self):
+    def measure_correctors(self) -> List[List[float]]:
         """Measures all correctors in the lattice."""
-        # Only used to save the initial states as correctors are from the lattice, not
-        # the enabled corrector lists.
+        # Only used to save the initial states as correctors are from the lattice,
+        # not the enabled corrector lists.
         hstr_values = self._lattice.get_element_values(
             "HSTR", "x_kick", pytac.RB, self._config.pytac_unit
         )
@@ -152,8 +155,8 @@ class LatticeModel:
                 self._config.pytac_unit,
             )
             log.debug(f"Stepped {corrector.get_pv_name(field, pytac.RB)[:-2]}")
-            # The sleeps ensure that the machine has settled/virtac has calculated
-            # changes.
+            # The sleeps ensure that the machine has settled/virtac has
+            # calculated changes.
             cothread.Sleep(self._config.time_delay)
             final_bpm = self.measure_bpms()
             corrector.set_value(field, initial_corr_values, self._config.pytac_unit)

@@ -6,8 +6,12 @@ import pytac  # noqa
 from PyQt6 import uic
 from PyQt6.QtWidgets import QMainWindow
 
-from dls_response_matrix import response_matrix as rm
 from dls_response_matrix.configuration import DELTA_LIMITS
+from dls_response_matrix.response_matrix import (
+    DEFAULT_MACHINE_MODE,
+    get_ring_modes,
+    response_matrix,
+)
 
 _qapp = cothread.iqt()
 
@@ -17,7 +21,7 @@ UI_FILENAME = Path(__file__).parent / "responsematrix.ui"
 @dataclass
 class Definitions:
     filename: str = None  # type: ignore
-    ring_mode: str = rm.DEFAULT_MACHINE_MODE
+    ring_mode: str = DEFAULT_MACHINE_MODE
     machine_type: str = "SIM"
     pytac_unit: str = "pytac.ENG"
     proposed_delta: float = 0.0
@@ -40,7 +44,7 @@ class MainWindow(QMainWindow):
         self.bpm_input.setToolTip(tooltips["remove-bpms"])
         self.split_input.setToolTip(tooltips["split-graphs"])
 
-        ring_modes, current_ring_mode = rm.get_ring_modes()
+        ring_modes, current_ring_mode = get_ring_modes()
         self.ring_mode_input.addItems(ring_modes)
         self.ring_mode_input.setCurrentText(current_ring_mode)
         self.set_limits()
@@ -80,10 +84,10 @@ class MainWindow(QMainWindow):
         if defs.filename == "":
             defs.filename = None
         if defs.ring_mode == "":
-            defs.ring_mode = rm.DEFAULT_MACHINE_MODE
+            defs.ring_mode = DEFAULT_MACHINE_MODE
         self.progressBar.setValue(0)
         process = cothread.Spawn(
-            lambda: rm.response_matrix(
+            lambda: response_matrix(
                 **vars(defs), progress_callback=self.progress_callback
             )
         )

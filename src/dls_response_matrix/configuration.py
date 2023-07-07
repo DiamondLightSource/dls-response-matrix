@@ -1,3 +1,6 @@
+"""configuration.py includes all classes and functions related to
+Config and Metadata."""
+
 import json
 import logging as log
 import os
@@ -52,8 +55,8 @@ class Config:
             filename = iso_time
         log.info(f"Filename: {filename}, Iso Time: {iso_time}.")
 
-        delta, pytac_formatted = cls.check_limits(proposed_delta, pytac_unit)
-        time_delay = cls.machine_setup(machine_type)
+        delta, pytac_formatted = cls._check_limits(proposed_delta, pytac_unit)
+        time_delay = cls._machine_setup(machine_type)
         return cls(
             filename,
             iso_time,
@@ -65,35 +68,32 @@ class Config:
         )
 
     @staticmethod
-    def check_limits(proposed_delta: float, pytac_unit: str) -> Tuple[float, str]:
+    def _check_limits(proposed_delta: float, pytac_unit: str) -> Tuple[float, str]:
         """Checks the limits and sets delta."""
         proposed_delta = float(proposed_delta)
-        max_delta, min_delta, default_delta, pytac_formatted = DELTA_LIMITS[pytac_unit]
+        delta_limits = DELTA_LIMITS[pytac_unit]
 
-        try:
-            if not (min_delta <= proposed_delta <= max_delta):
-                raise ValueError(
-                    f"Delta of {proposed_delta} is outside of acceptable range:"
-                    f" [{min_delta}, {max_delta}]."
-                )
-        except ValueError as e:
-            log.critical(e, exc_info=True)
+        if not (delta_limits.min <= proposed_delta <= delta_limits.max):
+            raise ValueError(
+                f"Delta of {proposed_delta} is outside of acceptable range: "
+                f"[{delta_limits.min}, {delta_limits.max}]."
+            )
 
         if proposed_delta == 0.0:
-            return default_delta, pytac_formatted
+            return delta_limits.default, delta_limits.pytac
         log.info(f"Delta: {proposed_delta}.")
-        return proposed_delta, pytac_formatted
+        return proposed_delta, delta_limits.pytac
 
     @classmethod
-    def machine_setup(cls, machine_type: str) -> float:
+    def _machine_setup(cls, machine_type: str) -> float:
         """Sets up the time delay for corrector stepping"""
 
         time_delay, port = MACHINE_SETUP[machine_type]
-        cls.configure_port(port)
+        cls._configure_port(port)
         return time_delay
 
     @staticmethod
-    def configure_port(port: str):
+    def _configure_port(port: str):
         """Configures the port"""
 
         os.environ["EPICS_CA_SERVER_PORT"] = port
@@ -110,10 +110,10 @@ class Metadata:
 
     # Initial and disabled states.
     disabled_correctors: List[List[int]] = field(default_factory=list)
-    disabled_bpms: List[List[int]] = field(default_factory=list)
+    disabled_bpms: List[int] = field(default_factory=list)
     initial: List[List[float]] = field(default_factory=list)
 
-    def write_json(self):
+    def write_json(self, folderpath=None):
         """This function writes the metadata to a .json file."""
         log.info("Saving metadata .json.")
         dictionary = {
@@ -125,20 +125,19 @@ class Metadata:
             "Time delay": self.config.time_delay,
             "Delta": self.config.delta,
             "Pytac units": self.config.pytac_unit,
-            # Disabled item elements. If the value is -1, then the item was not
-            # requested.
+            # Disabled item elements. If the value is -1,
+            # then the item was not requested.
             "Disabled correctors (Python indices): X, Y": self.disabled_correctors,
             "Disabled BPMs (Python indices)": self.disabled_bpms,
             # The initial corrector values are for all correctors in the full lattice.
             "Initial HSTR, VSTR:": self.initial,
         }
-        cwd = os.getcwd()
+
+        cwd = os.getcwd() if folderpath is None else folderpath
         foldername = f"RM-{self.config.iso_time}"
         filename = f"metadata-{self.config.filename}.json"
-        try:
-            os.mkdir(os.path.join(cwd, foldername))
-        except FileExistsError:
-            pass
+
+        os.makedirs(os.path.join(cwd, foldername))
 
         with open(
             f"{os.path.join(cwd, foldername, filename)}",
