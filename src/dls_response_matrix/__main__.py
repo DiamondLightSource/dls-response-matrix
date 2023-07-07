@@ -11,7 +11,10 @@ HELP_INFO = {
     "filename": "The filename for the saved files. Default is the ISO time.",
     "ring-mode": "The ring mode of the model. Default is I04",
     "proposed-delta": "The proposed delta to vary correctors by.",
-    "pytac-unit": "The units for the model. Toggles between pytac.ENG (default) and pytac.PHYS units.",
+    "pytac-unit": (
+        "The units for the model. Toggles between pytac.ENG (default) and pytac.PHYS"
+        " units."
+    ),
     "machine-type": "The machine type. Toggles between SIM (default) and LIVE units.",
     "remove-correctors": "Remove disabled correctors. Toggle. Default = False",
     "remove-bpms": "Remove disabled BPMs. Toggle. Default = False",

@@ -1,4 +1,5 @@
-"""lattice.py includes all classes and functions related to the lattice and the response-matrix process."""
+"""lattice.py includes all classes and functions related to the lattice
+and the response-matrix process."""
 
 import logging as log
 from typing import List
@@ -6,6 +7,7 @@ from typing import List
 import cothread
 import numpy as np
 import pytac
+from pytac import cothread_cs
 
 from dls_response_matrix.configuration import Config
 
@@ -16,28 +18,18 @@ class BeamPositionMonitorException(Exception):
     pass
 
 
-class RingmodeNotFound(Exception):
-    pass
-
-
 class LatticeModel:
     """LatticeModel class stores all lattice data and functions."""
 
     def __init__(self, config: Config):
         """Initialising the lattice, HSTR, VSTR and BPM arrays."""
         self._config = config
-        log.debug(f"Loading pytac lattice: {self._config.ring_mode}")
-        try:
-            self._lattice = pytac.load_csv.load(self._config.ring_mode)
-        except FileNotFoundError:
-            message = f"Ringmode {self._config.ring_mode} does not exist in pytac."
-            log.critical(message)
-            raise RingmodeNotFound(message)
 
-        # Required to stop timeout on the machine.
-        self._lattice._data_source_manager._data_sources[pytac.LIVE]._devices[
-            "beam_current"
-        ]._cs._timeout = 10.0
+        # Required to stop timout and to wait for caputs.
+        _cs = cothread_cs.CothreadControlSystem(timeout=10.0, wait=True)
+
+        log.debug(f"Loading pytac lattice: {self._config.ring_mode}")
+        self._lattice = pytac.load_csv.load(self._config.ring_mode, _cs)
 
         self.hstr = self._lattice.get_elements("HSTR")
         self.vstr = self._lattice.get_elements("VSTR")
@@ -90,7 +82,8 @@ class LatticeModel:
 
     def measure_correctors(self) -> List[List[float]]:
         """Measures all correctors in the lattice."""
-        # Only used to save the initial states as correctors are from the lattice, not the enabled corrector lists.
+        # Only used to save the initial states as correctors are from the lattice,
+        # not the enabled corrector lists.
         hstr_values = self._lattice.get_element_values(
             "HSTR", "x_kick", pytac.RB, self._config.pytac_unit
         )
@@ -99,7 +92,7 @@ class LatticeModel:
         )
         return [hstr_values, vstr_values]
 
-    def measure_bpms(self) -> List[float]:
+    def measure_bpms(self):
         """Measures all bpms in the lattice."""
         # Measures all BPMs (even disabled) for performance requirements.
         # Repeat CA requests for BPMs due to recurring device issues
@@ -140,7 +133,8 @@ class LatticeModel:
     def calculate_axis_response(
         self, results, correctors: list, field: str, offset: int, progress_callback
     ):
-        """Calculates the response matrix for a given set of correctors, by stepping each corrector by delta and measuring the change in beam position.
+        """Calculates the response matrix for a given set of correctors, by stepping
+        each corrector by delta and measuring the change in beam position.
 
         Arguments:
             correctors: A list of the corrector elements.
@@ -161,7 +155,8 @@ class LatticeModel:
                 self._config.pytac_unit,
             )
             log.debug(f"Stepped {corrector.get_pv_name(field, pytac.RB)[:-2]}")
-            # The sleeps ensure that the machine has settled/virtac has calculated changes.
+            # The sleeps ensure that the machine has settled/virtac has
+            # calculated changes.
             cothread.Sleep(self._config.time_delay)
             final_bpm = self.measure_bpms()
             corrector.set_value(field, initial_corr_values, self._config.pytac_unit)

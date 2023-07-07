@@ -1,4 +1,5 @@
-"""configuration.py includes all classes and functions related to Config and Metadata."""
+"""configuration.py includes all classes and functions related to
+Config and Metadata."""
 
 import json
 import logging as log
@@ -74,7 +75,8 @@ class Config:
 
         if not (delta_limits.min <= proposed_delta <= delta_limits.max):
             raise ValueError(
-                f"Delta of {proposed_delta} is outside of acceptable range: [{delta_limits.min}, {delta_limits.max}]."
+                f"Delta of {proposed_delta} is outside of acceptable range: "
+                f"[{delta_limits.min}, {delta_limits.max}]."
             )
 
         if proposed_delta == 0.0:
@@ -100,7 +102,8 @@ class Config:
 
 @dataclass
 class Metadata:
-    """Metadata class stores all configuration data and provides a function to write this data to a .json file."""
+    """Metadata class stores all configuration data and provides a function to write
+    this data to a .json file."""
 
     # Including the Config data.
     config: Config
@@ -122,7 +125,8 @@ class Metadata:
             "Time delay": self.config.time_delay,
             "Delta": self.config.delta,
             "Pytac units": self.config.pytac_unit,
-            # Disabled item elements. If the value is -1, then the item was not requested.
+            # Disabled item elements. If the value is -1,
+            # then the item was not requested.
             "Disabled correctors (Python indices): X, Y": self.disabled_correctors,
             "Disabled BPMs (Python indices)": self.disabled_bpms,
             # The initial corrector values are for all correctors in the full lattice.

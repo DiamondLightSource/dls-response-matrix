@@ -1,4 +1,5 @@
-"""results.py includes all classes and functions related to Results including plotting and saving."""
+"""results.py includes all classes and functions related to Results
+including plotting and saving."""
 
 import json
 import logging as log
@@ -12,12 +13,9 @@ from matplotlib.colors import TwoSlopeNorm
 from dls_response_matrix.configuration import Config
 
 
-class NewFilenameRequired(Exception):
-    pass
-
-
 class Results:
-    """The Results class handles the data, providing functions to store, remove, save, split and plot."""
+    """The Results class handles the data, providing functions to store, remove, save,
+    split and plot."""
 
     def __init__(
         self, config: Config, matrix: np.ndarray, filepath: Union[str, None] = None
@@ -49,11 +47,6 @@ class Results:
         matrix = np.genfromtxt(os.path.join(full_folderpath, rawdata_file))
         with open(os.path.join(full_folderpath, metadata_file)) as f:
             metadata = json.load(f)
-
-        if metadata["Filename"] == new_filename:
-            raise NewFilenameRequired(
-                "New filename cannot be the same as old filename."
-            )
 
         config = Config(
             new_filename,
