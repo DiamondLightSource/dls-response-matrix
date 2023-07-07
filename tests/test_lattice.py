@@ -51,7 +51,7 @@ def test_LatticeModel_initialised_correctly_using_the_sim_config():
 
 
 def test_LatticeModel_raises_exception_if_ringmode_not_found():
-    with pytest.raises(lattice.RingmodeNotFound):
+    with pytest.raises(FileNotFoundError):
         lattice.LatticeModel(config_incorrect)
 
 
@@ -79,7 +79,7 @@ def test_LatticeModel_confirm_disable_correctors_true_removes_disabled_corrector
     "pytac.lattice.Lattice.get_elements",
     return_value=[random.randint(0, 5) for _ in range(10)],
 )
-def test_LatticeModel_confirm_disable_correctors_false_does_not_remove_disabled_correctors(
+def test_confirm_disable_correctors_false_does_not_remove_disabled_correctors(
     mock_get_elements, mock_get_element_values
 ):
     latticemodel = lattice.LatticeModel(config_sim)

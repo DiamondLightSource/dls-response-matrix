@@ -13,6 +13,10 @@ from matplotlib.colors import TwoSlopeNorm
 from dls_response_matrix.configuration import Config
 
 
+class NewFilenameRequired(Exception):
+    pass
+
+
 class Results:
     """The Results class handles the data, providing functions to store, remove, save,
     split and plot."""
@@ -47,6 +51,11 @@ class Results:
         matrix = np.genfromtxt(os.path.join(full_folderpath, rawdata_file))
         with open(os.path.join(full_folderpath, metadata_file)) as f:
             metadata = json.load(f)
+
+        if metadata["Filename"] == new_filename:
+            raise NewFilenameRequired(
+                "New filename cannot be the same as old filename."
+            )
 
         config = Config(
             new_filename,
