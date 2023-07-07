@@ -2,6 +2,35 @@ API
 ===
 
 .. automodule:: dls_response_matrix
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+.. automodule:: dls_response_matrix.response_matrix
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+.. automodule:: dls_response_matrix.configuration
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+.. automodule:: dls_response_matrix.lattice
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+.. automodule:: dls_response_matrix.respm_app
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+.. automodule:: dls_response_matrix.results
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 
     ``dls_response_matrix``
     -----------------------------------
