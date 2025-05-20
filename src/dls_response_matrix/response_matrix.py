@@ -4,8 +4,7 @@ import logging as log
 import os
 from datetime import datetime
 
-from cothread.cothread import Timedout
-from cothread.catools import FORMAT_CTRL, caget
+from cothread.catools import FORMAT_CTRL, caget, ca_nothing
 
 from dls_response_matrix.configuration import Config, Metadata
 from dls_response_matrix.lattice import LatticeModel
@@ -19,9 +18,11 @@ DEFAULT_MACHINE_MODE: str = "I04"
 
 CONSOLE_LOG_FORMAT: str = "%(levelname)-7s: [%(filename)s:%(lineno)d] — %(message)s"
 """Logging formatting for console output."""
+
 FILE_LOG_FORMAT: str = (
     "%(levelname)-7s: %(asctime)s — [%(filename)s:%(lineno)d] — %(message)s"
 )
+
 """Logging formatting for file output."""
 
 
@@ -33,9 +34,9 @@ def get_ring_modes() -> tuple[list, str]:
         A tuple containing the list of ring modes, and the current ring mode.
     """
     try:
-        ring_mode_list = caget("SR-CS-RING-01:MODE", format=FORMAT_CTRL).enums
-        current_ringmode = caget("SR-CS-RING-01:MODE", datatype=str)
-    except Timedout:
+        ring_mode_list = caget("SR-CS-RING-01:MODE", format=FORMAT_CTRL, throw=True).enums
+        current_ringmode = caget("SR-CS-RING-01:MODE", datatype=str, throw=True)
+    except ca_nothing:
         ring_mode_list = ["I04"]
         current_ringmode = "I04"
         log.warning(f"Timeout while searching for PV SR-CS-RING-01:MODE. Is the slow "
@@ -65,6 +66,7 @@ def get_new_logger(
         pass
 
     logger = log.getLogger()
+    logger.handlers.clear()
     logger.setLevel(log.NOTSET)
     # Console handler
     console_handler = log.StreamHandler()

@@ -15,7 +15,11 @@ RUN apt-get update && apt-get upgrade -y && \
 
 # set up a virtual environment and put it in PATH
 RUN python -m venv /venv
+
+ARG PATH=/venv/bin:$PATH
 ENV PATH=/venv/bin:$PATH
+ENV EPICS_CA_SERVER_PORT=8064
+ENV EPICS_CA_REPEATER_PORT=8065
 
 # Copy any required context for the pip install over
 COPY . /context
@@ -34,9 +38,6 @@ RUN apt-get update && apt-get upgrade -y && \
 
 # copy the virtual environment from the build stage and put it in PATH
 COPY --from=build /venv/ /venv/
-ENV PATH=/venv/bin:$PATH
-ENV EPICS_CA_SERVER_PORT=8064
-ENV EPICS_CA_REPEATER_PORT=8065
 
 # change this entrypoint if it is not the same as the repo
 ENTRYPOINT ["dls-response-matrix-gui"]

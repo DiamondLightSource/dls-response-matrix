@@ -132,7 +132,7 @@ class Config:
         Returns:
             The delay between each corrector step in seconds.
         """
-        max,min,default, expected_port = MACHINE_SETUP[machine_type]
+        max, min, default, expected_port = MACHINE_SETUP[machine_type]
         if (proposed_delay is None):
             time_delay=default
             log.info(f"Setting step delay to default {default}")
