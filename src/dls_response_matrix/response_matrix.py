@@ -4,6 +4,7 @@ import logging as log
 import os
 from datetime import datetime
 
+from cothread.cothread import Timedout
 from cothread.catools import FORMAT_CTRL, caget
 
 from dls_response_matrix.configuration import Config, Metadata
@@ -31,8 +32,15 @@ def get_ring_modes() -> tuple[list, str]:
     Returns:
         A tuple containing the list of ring modes, and the current ring mode.
     """
-    ring_mode_list = caget("SR-CS-RING-01:MODE", format=FORMAT_CTRL).enums
-    current_ringmode = caget("SR-CS-RING-01:MODE", datatype=str)
+    try:
+        ring_mode_list = caget("SR-CS-RING-01:MODE", format=FORMAT_CTRL).enums
+        current_ringmode = caget("SR-CS-RING-01:MODE", datatype=str)
+    except Timedout:
+        ring_mode_list = ["I04"]
+        current_ringmode = "I04"
+        log.warning(f"Timeout while searching for PV SR-CS-RING-01:MODE. Is the slow "
+                    f"feedbacks IOC available? Using default ringmode: {current_ringmode} "
+                    f"rather than that defined by the slow feedbacks algorithm.")
     return ring_mode_list, current_ringmode
 
 
@@ -74,6 +82,7 @@ def response_matrix(
     filename: str,
     ring_mode: str,
     proposed_delta: float,
+    proposed_delay: float,
     pytac_unit: str,
     machine_type: str,
     remove_correctors: bool,
@@ -89,7 +98,7 @@ def response_matrix(
 
     # Config setup.
     config = Config.get_configuration(
-        filename, iso_time, pytac_unit, ring_mode, machine_type, proposed_delta
+        filename, iso_time, pytac_unit, ring_mode, machine_type, proposed_delta, proposed_delay,
     )
 
     # Metadata setup.

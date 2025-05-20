@@ -11,6 +11,7 @@ HELP_INFO = {
     "filename": "The filename for the saved files. Default is the ISO time.",
     "ring-mode": "The ring mode of the model. Default is I04",
     "proposed-delta": "The proposed delta to vary correctors by.",
+    "proposed-delay": "The proposed time delay to wait between each magnet kick.",
     "pytac-unit": (
         "The units for the model. Toggles between pytac.ENG (default) and pytac.PHYS"
         " units."
@@ -44,6 +45,12 @@ def parse_arguments():
         type=float,
         default=0.0,
         help=HELP_INFO["proposed-delta"],
+    )
+    parser.add_argument(
+        "--proposed-delay",
+        "-t",
+        default=None,
+        help=HELP_INFO["proposed-delay"],
     )
     parser.add_argument(
         "--pytac-unit",
@@ -88,6 +95,7 @@ def main(args=None):
         args.filename,
         args.ring_mode,
         args.proposed_delta,
+        args.proposed_delay,
         args.pytac_unit,
         args.machine_type,
         args.remove_correctors,

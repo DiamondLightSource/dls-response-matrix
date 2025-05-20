@@ -48,14 +48,14 @@ def test_check_limits_returns_value_using_correct_limits():
 def test_configure_ports_ports_set_correctly_for_sim():
     port_name = "EPICS_CA_SERVER_PORT"
     sim_info = configuration.MACHINE_SETUP["SIM"]
-    configuration.Config._configure_port(sim_info[1])
+    configuration.Config._check_CA_ports(sim_info[1])
     assert os.environ.get(port_name) == sim_info[1]
 
 
 def test_configure_ports_ports_set_correctly_for_live():
     port_name = "EPICS_CA_SERVER_PORT"
     live_info = configuration.MACHINE_SETUP["LIVE"]
-    configuration.Config._configure_port(live_info[1])
+    configuration.Config._check_CA_ports(live_info[1])
     assert os.environ.get(port_name) == live_info[1]
 
 

@@ -8,10 +8,10 @@ FROM python:3.10 as build
 ARG PIP_OPTIONS=.
 
 # Add any system dependencies for the developer/build environment here e.g.
-# RUN apt-get update && apt-get upgrade -y && \
-#     apt-get install -y --no-install-recommends \
-#     desired-packages \
-#     && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends \
+    libqt5gui5 \
+    && rm -rf /var/lib/apt/lists/*
 
 # set up a virtual environment and put it in PATH
 RUN python -m venv /venv
@@ -35,6 +35,8 @@ RUN apt-get update && apt-get upgrade -y && \
 # copy the virtual environment from the build stage and put it in PATH
 COPY --from=build /venv/ /venv/
 ENV PATH=/venv/bin:$PATH
+ENV EPICS_CA_SERVER_PORT=8064
+ENV EPICS_CA_REPEATER_PORT=8065
 
 # change this entrypoint if it is not the same as the repo
 ENTRYPOINT ["dls-response-matrix-gui"]
