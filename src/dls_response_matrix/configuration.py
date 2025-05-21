@@ -141,6 +141,7 @@ class Config:
                                f"allowed range: {min}-{max} seconds")
         else:
             time_delay = proposed_delay
+            log.info(f"Setting step delay to {proposed_delay}")
         cls._check_CA_ports(machine_type, expected_port)
         return time_delay
 

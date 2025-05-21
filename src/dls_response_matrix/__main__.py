@@ -49,6 +49,7 @@ def parse_arguments():
     parser.add_argument(
         "--proposed-delay",
         "-t",
+        type=float,
         default=None,
         help=HELP_INFO["proposed-delay"],
     )

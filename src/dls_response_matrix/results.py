@@ -1,5 +1,6 @@
 """results.py includes all classes and functions related to Results
 including plotting and saving."""
+
 from __future__ import annotations
 
 import json
@@ -130,7 +131,7 @@ class Results:
 
     def write_csv(self):
         """Writes the matrix to a .csv."""
-        log.info("Writing to data to a .csv.")
+        log.info("Writing data to .csv file.")
 
         cwd = self._filepath if self._filepath is not None else os.getcwd()
         foldername = f"RM-{self._config.iso_time}"
