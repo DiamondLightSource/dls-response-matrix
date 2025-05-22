@@ -26,7 +26,7 @@ class Results:
     split and plot."""
 
     def __init__(
-        self, config: Config, matrix: np.ndarray, filepath: Optional[str] = None
+        self, config: Config, matrix: np.ndarray
     ):
         """Setup of the Results class.
 
@@ -34,12 +34,9 @@ class Results:
             config: A populated Config object.
             matrix: A matrix that contains a row for each BPM, and a
                 column for each corrector magnet.
-            filepath: An optional filepath to save the
-                files to. Defaults to None.
         """
         self._config: Config = config
         self._matrix: np.ndarray = matrix
-        self._filepath: Optional[str] = filepath
 
     @classmethod
     def from_corrector_info(
@@ -64,6 +61,7 @@ class Results:
         cls,
         full_folderpath: str,
         new_filename: str,
+        new_filepath: str,
     ):
         """Load and setup the Results object when given a valid folderpath.
 
@@ -71,8 +69,9 @@ class Results:
         a .csv file with "rawdata" in the name.
 
         Args:
-            full_folderpath: The path to the folder with old data.
-            new_filename: The new filename that newly generated files will have.
+            full_folderpath: The path to the folder with old data that we are importing.
+            new_filename: The filename that newly generated files will have.
+            new_filepath: The path to the directory where the new data is to be stored.
 
         Returns:
             A Results object.
@@ -88,13 +87,14 @@ class Results:
         with open(os.path.join(full_folderpath, metadata_file)) as f:
             metadata = json.load(f)
 
-        if metadata["Filename"] == new_filename:
+        if os.path.join(metadata["Filepath"], metadata["Filename"]) == os.path.join(new_filepath, new_filename):
             raise NewFilenameRequired(
-                "New filename cannot be the same as old filename."
+                "New file name and path cannot be the same as old file name and path."
             )
 
         config = Config(
             new_filename,
+            new_filepath,
             metadata["ISO time"],
             metadata["Pytac units"],
             metadata["Ring Mode"],
@@ -102,7 +102,7 @@ class Results:
             metadata["Delta"],
             metadata["Time delay"],
         )
-        return cls(config, matrix, full_folderpath)
+        return cls(config, matrix)
 
     def store(self, bpm_values: np.ndarray, index: int):
         """Store the BPM values in the correct index of the matrix.
@@ -133,8 +133,8 @@ class Results:
         """Writes the matrix to a .csv."""
         log.info("Writing data to .csv file.")
 
-        cwd = self._filepath if self._filepath is not None else os.getcwd()
-        foldername = f"RM-{self._config.iso_time}"
+        cwd = self._config.filepath if self._config.filepath is not None else os.getcwd()
+        foldername = f"RM-{self._config.filename}"
         filename = f"rawdata-full-{self._config.filename}.csv"
 
         np.savetxt(
@@ -149,8 +149,8 @@ class Results:
             split: If the matrix is already split,
                 then plot each quadrant seperately. Defaults to False.
         """
-        cwd = self._filepath if self._filepath is not None else os.getcwd()
-        foldername = f"RM-{self._config.iso_time}"
+        cwd = self._config.filepath if self._config.filepath is not None else os.getcwd()
+        foldername = f"RM-{self._config.filename}"
 
         if split:
             names = ["xCxB", "yCxB", "xCyB", "yCyB"]
@@ -180,8 +180,8 @@ class Results:
     def split(self):
         """Splits the matrix up into quadrants and writes .csvs."""
         log.info("Splitting the matrix.")
-        cwd = self._filepath if self._filepath is not None else os.getcwd()
-        foldername = f"RM-{self._config.iso_time}"
+        cwd = self._config.filepath if self._config.filepath is not None else os.getcwd()
+        foldername = f"RM-{self._config.filename}"
         xCxB_filename = f"rawdata-xCxB-{self._config.filename}.csv"
         yCxB_filename = f"rawdata-yCxB-{self._config.filename}.csv"
         xCyB_filename = f"rawdata-xCyB-{self._config.filename}.csv"
