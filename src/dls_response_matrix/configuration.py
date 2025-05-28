@@ -1,5 +1,6 @@
 """configuration.py includes all classes and functions related to
 Config and Metadata."""
+
 from __future__ import annotations
 
 import json
@@ -7,6 +8,7 @@ import logging as log
 import os
 from dataclasses import dataclass, field
 from typing import Any, NamedTuple, Optional, Sequence, Tuple
+
 import pytac
 
 DeltaLimits: NamedTuple = NamedTuple(
@@ -20,12 +22,18 @@ DELTA_LIMITS = {
 """Dictionary containing the completed information for ENG or PHYS units."""
 
 MachineSetup: NamedTuple = NamedTuple(
-    "MachineSetup", [("max_time_delay", float), ("min_time_delay", float), ("default_time_delay", float), ("port", str)]
+    "MachineSetup",
+    [
+        ("max_time_delay", float),
+        ("min_time_delay", float),
+        ("default_time_delay", float),
+        ("port", str),
+    ],
 )
 """The base structure containing the time delay and port."""
 MACHINE_SETUP: dict = {
     "SIM": MachineSetup(5, 0.5, 0.5, "8064"),
-    "LIVE": MachineSetup(1, 0.1, 0.25, "5054"),
+    "LIVE": MachineSetup(1, 0.1, 0.25, "5064"),
 }
 """Dictionary containing the completed information for the SIM or LIVE machine."""
 
@@ -74,7 +82,7 @@ class Config:
 
         Returns:
             The Config object.
-        """          
+        """
         delta, pytac_formatted = cls._check_limits(proposed_delta, pytac_unit)
         time_delay = cls._machine_setup(proposed_delay, machine_type)
         return cls(
@@ -116,7 +124,7 @@ class Config:
         if proposed_delta == 0.0:
             log.info(f"Using default delta: {delta_limits.default}.")
             return delta_limits.default, delta_limits.pytac
-        
+
         log.info(f"Using delta: {proposed_delta}.")
         return proposed_delta, delta_limits.pytac
 
@@ -132,40 +140,53 @@ class Config:
             The delay between each corrector step in seconds.
         """
         max, min, default, expected_port = MACHINE_SETUP[machine_type]
-        if (proposed_delay is None):
-            time_delay=default
+        if proposed_delay is None:
+            time_delay = default
             log.info(f"Setting step delay to default {default}")
-        elif (proposed_delay>max or proposed_delay<min):
-            raise ValueError(f"User requested time delay {proposed_delay} is out of "
-                               f"allowed range: {min}-{max} seconds")
+        elif proposed_delay > max or proposed_delay < min:
+            raise ValueError(
+                f"User requested time delay {proposed_delay} is out of "
+                f"allowed range: {min}-{max} seconds"
+            )
         else:
             time_delay = proposed_delay
             log.info(f"Setting step delay to {proposed_delay}")
-        cls._check_CA_ports(machine_type, expected_port)
+        cls._check_CA_ports(machine_type)
         return time_delay
 
     @staticmethod
-    def _check_CA_ports(machine_type: str, expected_port: str):
+    def _check_CA_ports(machine_type: str):
         """Set up the Channel Access Port.
 
         Args:
             port: The port number.
         """
+        expected_ca_addr_port = MACHINE_SETUP[machine_type][3]
         try:
             server_port = os.environ["EPICS_CA_SERVER_PORT"]
             repeater_port = os.environ["EPICS_CA_REPEATER_PORT"]
-            if (machine_type != "LIVE" and server_port==5064):
-                raise ValueError("CA server port set to 5064, but machine_type is not LIVE. "
-                                   "Only use port 5064 when running against the LIVE machine")
-            if (machine_type != "LIVE" and repeater_port == 5065):
-                raise ValueError("CA server port set to 5064, but machine_type is not LIVE. "
-                                   "Only use port 5064 when running against the LIVE machine")
-            if (machine_type == "SIM" and server_port!=expected_port):
-                log.warning(f"VIRTAC simulation is normally done on CA port {expected_port}, "
-                            f"but your CA server port is set to {server_port}. Is this okay?")
-            if (machine_type == "SIM" and repeater_port!=str(int(expected_port)+1)):            
-                log.warning(f"VIRTAC simulation is normally done on CA port {str(int(expected_port)+1)}, "
-                            f"but your CA repeater port is set to {repeater_port}. Is this okay?")
+            if machine_type != "LIVE" and server_port == str(5064):
+                raise ValueError(
+                    "CA server port set to 5064, but machine_type is not LIVE. "
+                    "Only use port 5064 when running against the LIVE machine"
+                )
+            if machine_type != "LIVE" and repeater_port == str(5065):
+                raise ValueError(
+                    "CA server port set to 5064, but machine_type is not LIVE. "
+                    "Only use port 5064 when running against the LIVE machine"
+                )
+            if machine_type == "SIM" and server_port != expected_ca_addr_port:
+                log.warning(
+                    f"VIRTAC simulation is normally done on CA port {expected_ca_addr_port}, "
+                    f"but your CA server port is set to {server_port}. Is this okay?"
+                )
+            if machine_type == "SIM" and repeater_port != str(
+                int(expected_ca_addr_port) + 1
+            ):
+                log.warning(
+                    f"VIRTAC simulation is normally done on CA port {str(int(expected_ca_addr_port) + 1)}, "
+                    f"but your CA repeater port is set to {repeater_port}. Is this okay?"
+                )
         except KeyError as e:
             raise ValueError("EPICS CA variables not set!") from e
         log.info(f"Using 'EPICS_CA_SERVER_PORT' {server_port}")
