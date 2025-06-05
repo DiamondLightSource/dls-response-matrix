@@ -9,9 +9,6 @@
             "PIP_OPTIONS": "--upgrade pip"
         }
     },
-    "remoteEnv": {
-        "DISPLAY": "${localEnv:DISPLAY}"
-    },
     // Add the URLs of features you want added when the container is built.
     "features": {
         "ghcr.io/devcontainers/features/common-utils:1": {
