@@ -7,11 +7,11 @@ FROM python:3.10 as build
 
 ARG PIP_OPTIONS=.
 
-# Add any system dependencies for the developer/build environment here e.g.
-# RUN apt-get update && apt-get upgrade -y && \
-#     apt-get install -y --no-install-recommends \
-#     desired-packages \
-#     && rm -rf /var/lib/apt/lists/*
+# Add apt-get system dependencies for runtime here if needed
+RUN apt-get update && apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends \
+    libqt5gui5 \
+    && rm -rf /var/lib/apt/lists/*
 
 # set up a virtual environment and put it in PATH
 RUN python -m venv /venv
@@ -26,7 +26,7 @@ RUN pip install ${PIP_OPTIONS}
 
 FROM python:3.10-slim as runtime
 
-# Add apt-get system dependecies for runtime here if needed
+# Add apt-get system dependencies for runtime here if needed
 RUN apt-get update && apt-get upgrade -y && \
     apt-get install -y --no-install-recommends \
     libqt5gui5 \
