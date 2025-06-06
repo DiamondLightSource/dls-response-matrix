@@ -5,7 +5,7 @@ import logging as log
 import os
 from datetime import datetime
 
-from cothread.catools import FORMAT_CTRL, caget
+from cothread.catools import FORMAT_CTRL, caget, ca_nothing
 
 from dls_response_matrix.configuration import Config, Metadata
 from dls_response_matrix.lattice import LatticeModel
@@ -34,8 +34,19 @@ def get_ring_modes() -> tuple[list, str]:
     Returns:
         A tuple containing the list of ring modes, and the current ring mode.
     """
-    ring_mode_list = caget("SR-CS-RING-01:MODE", format=FORMAT_CTRL).enums
-    current_ringmode = caget("SR-CS-RING-01:MODE", datatype=str)
+    try:
+        ring_mode_list = caget(
+            "SR-CS-RING-01:MODE", format=FORMAT_CTRL, throw=True
+        ).enums
+        current_ringmode = caget("SR-CS-RING-01:MODE", datatype=str, throw=True)
+    except ca_nothing as e:
+        ring_mode_list = ["I04"]
+        current_ringmode = "I04"
+        log.error(
+            f"Timeout while searching for PV SR-CS-RING-01:MODE. Is the slow "
+            f"feedbacks IOC available?"
+        )
+        raise e
     return ring_mode_list, current_ringmode
 
 
