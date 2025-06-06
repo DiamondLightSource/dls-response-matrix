@@ -140,7 +140,7 @@ class Config:
         Args:
             port: The port number.
         """
-        expected_ca_addr_port = MACHINE_SETUP[machine_type][3]
+        expected_ca_addr_port = MACHINE_SETUP[machine_type][1]
         try:
             server_port = os.environ["EPICS_CA_SERVER_PORT"]
             repeater_port = os.environ["EPICS_CA_REPEATER_PORT"]

@@ -45,25 +45,30 @@ def test_check_limits_returns_value_using_correct_limits():
     assert result == (test_value, delta_limits.pytac)
 
 
-def test_configure_ports_ports_set_correctly_for_sim():
+def test_check_CA_ports_raises_error_when_machine_type_is_SIM_and_addr_port_is_5064():
+    addr_port_name = "EPICS_CA_SERVER_PORT"
+    machine_type = "SIM"
+    port = 5064
+    os.environ[addr_port_name] = str(port)
+    with pytest.raises(ValueError):
+        configuration.Config._check_CA_ports(machine_type)
+
+
+def test_check_CA_ports_raises_error_when_machine_type_is_SIM_and_repeater_port_is_5065():
+    repeater_port_name = "EPICS_CA_REPEATER_PORT"
+    machine_type = "SIM"
+    port = 5065
+    os.environ[repeater_port_name] = str(port)
+    with pytest.raises(ValueError):
+        configuration.Config._check_CA_ports(machine_type)
+
+
+def test_check_CA_ports_does_not_raise_error_when_machine_type_is_LIVE_and_port_is_8064():
     port_name = "EPICS_CA_SERVER_PORT"
-    sim_info = configuration.MACHINE_SETUP["SIM"]
-    configuration.Config._configure_port(sim_info[1])
-    assert os.environ.get(port_name) == sim_info[1]
-
-
-def test_configure_ports_ports_set_correctly_for_live():
-    port_name = "EPICS_CA_SERVER_PORT"
-    live_info = configuration.MACHINE_SETUP["LIVE"]
-    configuration.Config._configure_port(live_info[1])
-    assert os.environ.get(port_name) == live_info[1]
-
-
-def test_machine_setup_time_delay_set_correctly_for_live():
     machine_type = "LIVE"
-    time_delay = configuration.MACHINE_SETUP[machine_type][0]
-    result = configuration.Config._machine_setup(machine_type)
-    assert time_delay == result
+    port = 8064
+    os.environ[port_name] = str(port)
+    configuration.Config._check_CA_ports(machine_type)
 
 
 def test_machine_setup_time_delay_set_correctly_for_sim():
