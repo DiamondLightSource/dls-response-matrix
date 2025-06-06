@@ -22,12 +22,18 @@ DELTA_LIMITS = {
 """Dictionary containing the completed information for ENG or PHYS units."""
 
 MachineSetup: NamedTuple = NamedTuple(
-    "MachineSetup", [("time_delay", float), ("port", str)]
+    "MachineSetup",
+    [
+        ("max_time_delay", float),
+        ("min_time_delay", float),
+        ("default_time_delay", float),
+        ("port", str),
+    ],
 )
 """The base structure containing the time delay and port."""
 MACHINE_SETUP: dict = {
-    "SIM": MachineSetup(1.2, "6064"),
-    "LIVE": MachineSetup(0.25, "5054"),
+    "SIM": MachineSetup(5, 0.5, 0.5, "8064"),
+    "LIVE": MachineSetup(1, 0.1, 0.25, "5064"),
 }
 """Dictionary containing the completed information for the SIM or LIVE machine."""
 
@@ -55,6 +61,7 @@ class Config:
         ring_mode: str,
         machine_type: str,
         proposed_delta: float,
+        proposed_delay: float,
     ):
         """Initialise the standard configuration object.
 
@@ -77,7 +84,7 @@ class Config:
             The Config object.
         """
         delta, pytac_formatted = cls._check_limits(proposed_delta, pytac_unit)
-        time_delay = cls._machine_setup(machine_type)
+        time_delay = cls._machine_setup(proposed_delay, machine_type)
         return cls(
             filename,
             filepath,
@@ -115,12 +122,14 @@ class Config:
             )
 
         if proposed_delta == 0.0:
+            log.info(f"Using default delta: {delta_limits.default}.")
             return delta_limits.default, delta_limits.pytac
-        log.info(f"Delta: {proposed_delta}.")
+
+        log.info(f"Using delta: {proposed_delta}.")
         return proposed_delta, delta_limits.pytac
 
     @classmethod
-    def _machine_setup(cls, machine_type: str) -> float:
+    def _machine_setup(cls, proposed_delay: float, machine_type: str) -> float:
         """Set up time delay and port.
 
         Args:
@@ -130,7 +139,18 @@ class Config:
         Returns:
             The delay between each corrector step in seconds.
         """
-        time_delay, port = MACHINE_SETUP[machine_type]
+        max, min, default, expected_port = MACHINE_SETUP[machine_type]
+        if proposed_delay is None:
+            time_delay = default
+            log.info(f"Setting step delay to default {default}")
+        elif proposed_delay > max or proposed_delay < min:
+            raise ValueError(
+                f"User requested time delay {proposed_delay} is out of "
+                f"allowed range: {min}-{max} seconds"
+            )
+        else:
+            time_delay = proposed_delay
+            log.info(f"Setting step delay to {proposed_delay}")
         cls._check_CA_ports(machine_type)
         return time_delay
 
@@ -141,7 +161,7 @@ class Config:
         Args:
             port: The port number.
         """
-        expected_ca_addr_port = MACHINE_SETUP[machine_type][1]
+        expected_ca_addr_port = MACHINE_SETUP[machine_type][3]
         try:
             server_port = os.environ["EPICS_CA_SERVER_PORT"]
             repeater_port = os.environ["EPICS_CA_REPEATER_PORT"]
