@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import os
 from pathlib import Path
 
 import cothread
-import pytac  # noqa
 from PyQt6 import uic
-from PyQt6.QtWidgets import QMainWindow
+from PyQt6.QtWidgets import QMainWindow, QFileDialog
 
 from dls_response_matrix.configuration import DELTA_LIMITS
 from dls_response_matrix.response_matrix import (
@@ -23,6 +23,7 @@ UI_FILENAME = Path(__file__).parent / "responsematrix.ui"
 @dataclass
 class Definitions:
     filename: str = None  # type: ignore
+    filepath: str = None  # type: ignore
     ring_mode: str = DEFAULT_MACHINE_MODE
     machine_type: str = "SIM"
     pytac_unit: str = "pytac.ENG"
@@ -38,6 +39,8 @@ class MainWindow(QMainWindow):
         uic.loadUi(UI_FILENAME, self)
 
         self.filename_input.setToolTip(tooltips["filename"])
+        self.filepath_input.setToolTip(tooltips["filepath"])
+        self.file_browser.clicked.connect(self.open_file_dialog)
         self.ring_mode_input.setToolTip(tooltips["ring-mode"])
         self.proposed_delta_input.setToolTip(tooltips["proposed-delta"])
         self.pytac_unit_input.setToolTip(tooltips["pytac-unit"])
@@ -56,6 +59,7 @@ class MainWindow(QMainWindow):
     def get_current_args(self):
         return Definitions(
             filename=self.filename_input.text(),
+            filepath=self.filepath_input.text(),
             ring_mode=self.ring_mode_input.currentText(),
             machine_type=self.machine_type_input.currentText(),
             pytac_unit=self.pytac_unit_input.currentText(),
@@ -81,10 +85,21 @@ class MainWindow(QMainWindow):
         process.Wait()
         self.start_button.setEnabled(True)
 
+    def open_file_dialog(self):
+        directory = QFileDialog.getExistingDirectory(
+            self,
+            "Select a File",
+            f"{os.getcwd()}"
+        )
+        self.filepath_input.setText(directory)
+        
+        
     def button_pressed(self):
         defs = self.get_current_args()
         if defs.filename == "":
             defs.filename = None
+        if defs.filepath == "":
+            defs.filepath = None
         if defs.ring_mode == "":
             defs.ring_mode = DEFAULT_MACHINE_MODE
         self.progressBar.setValue(0)
