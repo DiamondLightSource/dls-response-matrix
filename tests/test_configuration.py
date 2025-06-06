@@ -4,7 +4,7 @@ from unittest import mock
 
 import pytest
 
-from dls_response_matrix import configuration
+from dls_response_matrix import configuration, response_matrix
 
 TEST_FILE_NAME = "TEST FILE NAME"
 TEST_FILE_PATH = "/TEST/FILE/PATH"
@@ -67,23 +67,36 @@ def test_check_CA_ports_raises_error_when_machine_type_is_SIM_and_repeater_port_
 
 def test_check_CA_ports_does_not_raise_error_when_machine_type_is_LIVE_and_port_is_8064():
     port_name = "EPICS_CA_SERVER_PORT"
+    sim_info = configuration.MACHINE_SETUP["SIM"]
+    configuration.Config._check_CA_ports("SIM")
+    assert os.environ.get(port_name) == sim_info[3]
+
+
+def test_machine_setup_time_delay_raises_error_when_too_short():
+    machine_type = "SIM"
+    time_delay = 0.1
+    with pytest.raises(ValueError):
+        configuration.Config._machine_setup(time_delay, machine_type)
+
+
+def test_machine_setup_correct_time_delay_returned_for_LIVE_machine_type():
     machine_type = "LIVE"
+    port_name = "EPICS_CA_SERVER_PORT"
     port = 8064
+    initial_port = os.environ[port_name]
     os.environ[port_name] = str(port)
     configuration.Config._check_CA_ports(machine_type)
+    time_delay = 0.2
+    result = configuration.Config._machine_setup(time_delay, machine_type)
+    os.environ[port_name] = initial_port
+    assert result == 0.2
 
 
-def test_machine_setup_time_delay_set_correctly_for_sim():
+def test_machine_setup_time_delay_returns_default_when_time_delay_is_none():
     machine_type = "SIM"
-    time_delay = configuration.MACHINE_SETUP[machine_type][0]
-    result = configuration.Config._machine_setup(machine_type)
-    assert time_delay == result
-
-
-def test_machine_setup_raises_KeyError_because_incorrect_machine_type():
-    machine_type = "DOES_NOT_EXIST"
-    with pytest.raises(KeyError):
-        configuration.Config._machine_setup(machine_type)
+    time_delay = None
+    result = configuration.Config._machine_setup(time_delay, machine_type)
+    assert result == configuration.MACHINE_SETUP[machine_type][2]
 
 
 @mock.patch(
@@ -111,7 +124,8 @@ def test_get_configuration_returns_Config_with_correct_values(
         "pytac.ENG",
         "I04",
         "SIM",
-        0,
+        0.05,
+        0.1,
     )
     assert config == expected_config
 

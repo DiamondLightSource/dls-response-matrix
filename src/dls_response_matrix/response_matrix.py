@@ -107,16 +107,11 @@ def response_matrix(
     config = Config.get_configuration(
         filename,
         filepath,
-       
         iso_time,
-       
         pytac_unit,
-       
         ring_mode,
-       
         machine_type,
-       
-        proposed_delta,,
+        proposed_delta,
         proposed_delay,
     )
 
