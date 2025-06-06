@@ -130,18 +130,46 @@ class Config:
             The delay between each corrector step in seconds.
         """
         time_delay, port = MACHINE_SETUP[machine_type]
-        cls._configure_port(port)
+        cls._check_CA_ports(machine_type)
         return time_delay
 
     @staticmethod
-    def _configure_port(port: str):
+    def _check_CA_ports(machine_type: str):
         """Set up the Channel Access Port.
 
         Args:
             port: The port number.
         """
-        os.environ["EPICS_CA_SERVER_PORT"] = port
-        log.debug(f"'EPICS_CA_SERVER_PORT' set to {port}")
+        expected_ca_addr_port = MACHINE_SETUP[machine_type][3]
+        try:
+            server_port = os.environ["EPICS_CA_SERVER_PORT"]
+            repeater_port = os.environ["EPICS_CA_REPEATER_PORT"]
+            if machine_type != "LIVE" and server_port == str(5064):
+                raise ValueError(
+                    "CA server port set to 5064, but machine_type is not LIVE. "
+                    "Only use port 5064 when running against the LIVE machine"
+                )
+            if machine_type != "LIVE" and repeater_port == str(5065):
+                raise ValueError(
+                    "CA server port set to 5064, but machine_type is not LIVE. "
+                    "Only use port 5064 when running against the LIVE machine"
+                )
+            if machine_type == "SIM" and server_port != expected_ca_addr_port:
+                log.warning(
+                    f"VIRTAC simulation is normally done on CA port {expected_ca_addr_port}, "
+                    f"but your CA server port is set to {server_port}. Is this okay?"
+                )
+            if machine_type == "SIM" and repeater_port != str(
+                int(expected_ca_addr_port) + 1
+            ):
+                log.warning(
+                    f"VIRTAC simulation is normally done on CA port {str(int(expected_ca_addr_port) + 1)}, "
+                    f"but your CA repeater port is set to {repeater_port}. Is this okay?"
+                )
+        except KeyError as e:
+            raise ValueError("EPICS CA variables not set!") from e
+        log.info(f"Using 'EPICS_CA_SERVER_PORT' {server_port}")
+        log.info(f"Using 'EPICS_CA_REPEATER_PORT' {repeater_port}")
 
 
 @dataclass
