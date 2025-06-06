@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import errno
 import logging as log
 import os
 from datetime import datetime
@@ -18,9 +19,11 @@ DEFAULT_MACHINE_MODE: str = "I04"
 
 CONSOLE_LOG_FORMAT: str = "%(levelname)-7s: [%(filename)s:%(lineno)d] — %(message)s"
 """Logging formatting for console output."""
+
 FILE_LOG_FORMAT: str = (
     "%(levelname)-7s: %(asctime)s — [%(filename)s:%(lineno)d] — %(message)s"
 )
+
 """Logging formatting for file output."""
 
 
@@ -37,7 +40,7 @@ def get_ring_modes() -> tuple[list, str]:
 
 
 def get_new_logger(
-    isotime: str, console_log_level: int = log.INFO, file_log_level: int = log.DEBUG
+    filename: str, filepath: str, console_log_level: int = log.INFO, file_log_level: int = log.DEBUG
 ):
     """Initialise and setup the logger.
 
@@ -48,11 +51,11 @@ def get_new_logger(
         console_log_level : The minimum logging level to be returned in the console.
         file_log_level: The minimum logging level to be returned in the file.
     """
-    cwd = os.getcwd()
-    foldername = f"RM-{isotime}"
-    filename = "log.log"
+    foldername = f"RM-{filename}"
+    full_path = os.path.join(filepath, foldername)
+    file_log_name = "log.log"
     try:
-        os.mkdir(os.path.join(cwd, foldername))
+        os.mkdir(full_path)
     except FileExistsError:
         pass
 
@@ -64,14 +67,16 @@ def get_new_logger(
     console_handler.setFormatter(log.Formatter(CONSOLE_LOG_FORMAT))
     logger.addHandler(console_handler)
     # File handler
-    file_handler = log.FileHandler(os.path.join(cwd, foldername, filename))
+    file_handler = log.FileHandler(os.path.join(full_path, file_log_name))
     file_handler.setLevel(file_log_level)
     file_handler.setFormatter(log.Formatter(FILE_LOG_FORMAT))
     logger.addHandler(file_handler)
 
+    log.info(f"Saving data to: {full_path}")
 
 def response_matrix(
     filename: str,
+    filepath: str,
     ring_mode: str,
     proposed_delta: float,
     pytac_unit: str,
@@ -85,11 +90,27 @@ def response_matrix(
     # Timing setup.
     start = datetime.now()
     iso_time = start.strftime(ISO_TIME_FORMAT_STRING)
-    get_new_logger(iso_time)
+    
+    # Check filename and filepath are valid
+    if filename is None:
+        filename = iso_time
+    log.info(f"Filename: {filename}, Iso Time: {iso_time}.")
+    if filepath is None:
+        filepath = os.getcwd()
+    elif not os.path.isdir(filepath):
+        raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), filepath)
+    
+    get_new_logger(filename, filepath)
 
     # Config setup.
     config = Config.get_configuration(
-        filename, iso_time, pytac_unit, ring_mode, machine_type, proposed_delta
+        filename,
+        filepath,
+        iso_time,
+        pytac_unit,
+        ring_mode,
+        machine_type,
+        proposed_delta,
     )
 
     # Metadata setup.

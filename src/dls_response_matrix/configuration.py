@@ -1,5 +1,6 @@
 """configuration.py includes all classes and functions related to
 Config and Metadata."""
+
 from __future__ import annotations
 
 import json
@@ -36,6 +37,7 @@ class Config:
     """Config class stores commonly used configuration data."""
 
     filename: str = ""
+    filepath: str = ""
     iso_time: str = ""
     pytac_unit: str = ""
     ring_mode: str = ""
@@ -47,6 +49,7 @@ class Config:
     def get_configuration(
         cls,
         filename: str,
+        filepath: str,
         iso_time: str,
         pytac_unit: str,
         ring_mode: str,
@@ -61,7 +64,8 @@ class Config:
         Args:
             filename: The filename prefix of the generated files. Defaults to the
                 current ISO time.
-            iso_time: ISO 8601 time.
+            filepath: The path to the directory to save the data. Defaults to the
+                python module top directory.
             pytac_unit: The unit type as found in pytac.
             ring_mode: The name of the desired ringmode.
             machine_type: The machine type, either "SIM" for simulation or "LIVE"
@@ -72,14 +76,11 @@ class Config:
         Returns:
             The Config object.
         """
-        if filename is None:
-            filename = iso_time
-        log.info(f"Filename: {filename}, Iso Time: {iso_time}.")
-
         delta, pytac_formatted = cls._check_limits(proposed_delta, pytac_unit)
         time_delay = cls._machine_setup(machine_type)
         return cls(
             filename,
+            filepath,
             iso_time,
             pytac_formatted,
             ring_mode,
@@ -194,7 +195,7 @@ class Metadata:
     )
     """initial: The initial setpoints of all correctors."""
 
-    def write_json(self, folderpath: Optional[str] = None):
+    def write_json(self):
         """Write the metadata to a .json file.
 
         Args:
@@ -204,6 +205,7 @@ class Metadata:
         dictionary = {
             # Main metadata.
             "Filename": self.config.filename,
+            "Filepath": self.config.filepath,
             "ISO time": self.config.iso_time,
             "Ring Mode": self.config.ring_mode,
             "Machine type": self.config.machine_type,
@@ -218,14 +220,14 @@ class Metadata:
             "Initial HSTR, VSTR:": self.initial,
         }
 
-        cwd = os.getcwd() if folderpath is None else folderpath
-        foldername = f"RM-{self.config.iso_time}"
+        filepath = self.config.filepath if self.config.filepath is not None else os.getcwd()
+        foldername = f"RM-{self.config.filename}"
         filename = f"metadata-{self.config.filename}.json"
 
-        os.makedirs(os.path.join(cwd, foldername), exist_ok=True)
+        os.makedirs(os.path.join(filepath, foldername), exist_ok=True)
 
         with open(
-            f"{os.path.join(cwd, foldername, filename)}",
+            f"{os.path.join(filepath, foldername, filename)}",
             "w",
         ) as outfile:
             json.dump(dictionary, outfile, indent=4, ensure_ascii=False)
