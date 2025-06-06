@@ -8,7 +8,7 @@ import cothread
 from PyQt6 import uic
 from PyQt6.QtWidgets import QMainWindow, QFileDialog
 
-from dls_response_matrix.configuration import DELTA_LIMITS
+from dls_response_matrix.configuration import DELTA_LIMITS, MACHINE_SETUP
 from dls_response_matrix.response_matrix import (
     DEFAULT_MACHINE_MODE,
     get_ring_modes,
@@ -28,6 +28,7 @@ class Definitions:
     machine_type: str = "SIM"
     pytac_unit: str = "pytac.ENG"
     proposed_delta: float = 0.0
+    proposed_delay: float = 0.5
     remove_correctors: bool = False
     remove_bpms: bool = False
     split_graphs: bool = False
@@ -43,6 +44,7 @@ class MainWindow(QMainWindow):
         self.file_browser.clicked.connect(self.open_file_dialog)
         self.ring_mode_input.setToolTip(tooltips["ring-mode"])
         self.proposed_delta_input.setToolTip(tooltips["proposed-delta"])
+        self.proposed_delay_input.setToolTip(tooltips["proposed-delay"])
         self.pytac_unit_input.setToolTip(tooltips["pytac-unit"])
         self.machine_type_input.setToolTip(tooltips["machine-type"])
         self.corrector_input.setToolTip(tooltips["remove-correctors"])
@@ -54,6 +56,7 @@ class MainWindow(QMainWindow):
         self.ring_mode_input.setCurrentText(current_ring_mode)
         self.set_limits()
         self.pytac_unit_input.activated.connect(lambda: self.set_limits())
+        self.machine_type_input.activated.connect(lambda: self.set_limits())
         self.start_button.clicked.connect(self.button_pressed)
 
     def get_current_args(self):
@@ -63,7 +66,8 @@ class MainWindow(QMainWindow):
             ring_mode=self.ring_mode_input.currentText(),
             machine_type=self.machine_type_input.currentText(),
             pytac_unit=self.pytac_unit_input.currentText(),
-            proposed_delta=self.proposed_delta_input.text(),
+            proposed_delta=self.proposed_delta_input.value(),
+            proposed_delay=self.proposed_delay_input.value(),
             remove_correctors=self.corrector_input.isChecked(),
             remove_bpms=self.bpm_input.isChecked(),
             split_graphs=self.split_input.isChecked(),
@@ -76,7 +80,15 @@ class MainWindow(QMainWindow):
         self.proposed_delta_input.setMaximum(maximum)
         self.proposed_delta_input.setMinimum(minimum)
         self.proposed_delta_input.setValue(default)
-        self.proposed_delta_input.setSingleStep((maximum - minimum) / 100)
+        self.proposed_delta_input.setSingleStep(0.1)
+        
+        maximum, minimum, default, port = MACHINE_SETUP[
+            self.machine_type_input.currentText()
+        ]
+        self.proposed_delay_input.setMaximum(maximum)
+        self.proposed_delay_input.setMinimum(minimum)
+        self.proposed_delay_input.setValue(default)
+        self.proposed_delay_input.setSingleStep(0.1)
 
     def progress_callback(self, progress):
         self.progressBar.setValue(int(progress))
