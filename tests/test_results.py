@@ -6,14 +6,16 @@ import pytest
 
 from dls_response_matrix import configuration, lattice, results
 
-config_sim_filename = "FILENAME"
+config_sim_filename = "test"
+config_sim_filepath = "./"
 config_sim = configuration.Config(
     config_sim_filename,
+    config_sim_filepath,
     "TEST_ISO_TIME",
     "reformatted",
     "I04",
     "SIM",
-    100,
+    0.01,
     3,
 )
 
@@ -30,21 +32,23 @@ def test_results_initialised_from_corrector_info():
 
 
 def test_results_initialised_from_csv(tmp_path):
+    config_sim.filepath = str(tmp_path)
     metadata = configuration.Metadata(config_sim)
     latticemodel = lattice.LatticeModel(config_sim)
-    metadata.write_json(tmp_path)
+    metadata.write_json()
     matrix = np.zeros(
         shape=(
             len(latticemodel.bpm) * 2,
             len(latticemodel.hstr) + len(latticemodel.vstr),
         )
     )
-    result_old = results.Results(config_sim, matrix, tmp_path)
+    result_old = results.Results(config_sim, matrix)
     result_old.write_csv()
-    foldername = f"RM-{result_old._config.iso_time}"
+    foldername = f"RM-{result_old._config.filename}"
     full_path = os.path.join(tmp_path, foldername)
-    result_new = results.Results.from_csv(full_path, "NEW_FILENAME")
+    result_new = results.Results.from_csv(full_path, "NEW_FILENAME", "NEW_FILEPATH")
     assert result_new._config.filename == "NEW_FILENAME"
+    assert result_new._config.filepath == "NEW_FILEPATH"
 
 
 def test_results_remove_bpms_works_as_expected():
@@ -65,39 +69,51 @@ def test_results_remove_bpms_works_as_expected():
 
 
 def test_from_csv_raises_exception_if_new_filename_same_as_old_filename(tmp_path):
+    """Create a metadata json file using the config supplied. Create a dummy matrix and
+    write it to a csv file in the same directory specified by config. Attempt to make 
+    a new Results object from the same csb file we just made. However because we specified
+    the new filename and filepath to be the same as the old one, when it tries to make this
+    new csv file it will report this issue and raise an exception."""
+    config_sim.filepath = str(tmp_path)
     metadata = configuration.Metadata(config_sim)
     latticemodel = lattice.LatticeModel(config_sim)
-    metadata.write_json(tmp_path)
+    metadata.write_json()
     matrix = np.zeros(
         shape=(
             len(latticemodel.bpm) * 2,
             len(latticemodel.hstr) + len(latticemodel.vstr),
         )
     )
-    result_old = results.Results(config_sim, matrix, tmp_path)
+    result_old = results.Results(config_sim, matrix)
     result_old.write_csv()
-    foldername = f"RM-{result_old._config.iso_time}"
-    full_path = os.path.join(tmp_path, foldername)
+    foldername = f"RM-{result_old._config.filename}"
+    old_path = os.path.join(tmp_path, foldername)
     with pytest.raises(results.NewFilenameRequired):
-        results.Results.from_csv(full_path, config_sim.filename)
+        results.Results.from_csv(old_path, config_sim.filename, config_sim.filepath)
 
 
 def test_from_csv_returns_results_if_new_filename_different_to_old_filename(tmp_path):
+    """Create new Results object by creating a config and writing it to a json file. Then
+    create some dummy data and write a csv file to the same directory. Then load the csv
+    file from this directory and create a new Results object. Check that they have the same
+    config options (which have been loaded from the json file that was earlier created)... 
+    except for the filename and filepath which must be different."""
+    config_sim.filepath = str(tmp_path)
     metadata = configuration.Metadata(config_sim)
     latticemodel = lattice.LatticeModel(config_sim)
-    metadata.write_json(tmp_path)
+    metadata.write_json()
     matrix = np.zeros(
         shape=(
             len(latticemodel.bpm) * 2,
             len(latticemodel.hstr) + len(latticemodel.vstr),
         )
     )
-    result_old = results.Results(config_sim, matrix, tmp_path)
+    result_old = results.Results(config_sim, matrix)
     result_old.write_csv()
-    foldername = f"RM-{result_old._config.iso_time}"
+    foldername = f"RM-{result_old._config.filename}"
     full_path = os.path.join(tmp_path, foldername)
-    result_new = results.Results.from_csv(full_path, "New_Filename")
+    result_new = results.Results.from_csv(full_path, "New_Filename", "./")
     assert result_new._config.filename != result_old._config.filename
     assert (
-        replace(result_new._config, filename=config_sim_filename) == result_old._config
+        replace(result_new._config, filename=config_sim_filename, filepath=str(tmp_path)) == result_old._config
     )

@@ -1,3 +1,4 @@
+import os
 import random
 from unittest import mock
 
@@ -9,6 +10,7 @@ from dls_response_matrix import configuration, lattice, results
 
 config_live = configuration.Config(
     "TEST_ISO_TIME",
+    os.getcwd(),
     "TEST_ISO_TIME",
     "reformatted",
     "I04",
@@ -18,6 +20,7 @@ config_live = configuration.Config(
 )
 config_sim = configuration.Config(
     "TEST_ISO_TIME",
+    os.getcwd(),
     "TEST_ISO_TIME",
     "reformatted",
     "I04",
@@ -27,6 +30,7 @@ config_sim = configuration.Config(
 )
 config_incorrect = configuration.Config(
     "TEST_ISO_TIME",
+    os.getcwd(),
     "TEST_ISO_TIME",
     "reformatted",
     "FALSE_RINGMODE",
