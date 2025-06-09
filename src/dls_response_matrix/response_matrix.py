@@ -71,6 +71,7 @@ def get_new_logger(
         pass
 
     logger = log.getLogger()
+    logger.handlers.clear()
     logger.setLevel(log.NOTSET)
     # Console handler
     console_handler = log.StreamHandler()
