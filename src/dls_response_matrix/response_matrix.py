@@ -40,13 +40,11 @@ def get_ring_modes() -> tuple[list, str]:
         ).enums
         current_ringmode = caget("SR-CS-RING-01:MODE", datatype=str, throw=True)
     except ca_nothing as e:
-        ring_mode_list = ["I04"]
-        current_ringmode = "I04"
-        log.error(
-            f"Timeout while searching for PV SR-CS-RING-01:MODE. Is the slow "
-            f"feedbacks IOC available?"
+        ring_mode_list = [DEFAULT_MACHINE_MODE]
+        current_ringmode = DEFAULT_MACHINE_MODE
+        log.warning(
+            f"Timeout while searching for PV SR-CS-RING-01:MODE. Using default ring_mode {DEFAULT_MACHINE_MODE}"
         )
-        raise e
     return ring_mode_list, current_ringmode
 
 
