@@ -46,9 +46,9 @@ def test_results_initialised_from_csv(tmp_path):
     result_old.write_csv()
     foldername = f"RM-{result_old._config.filename}"
     full_path = os.path.join(tmp_path, foldername)
-    result_new = results.Results.from_csv(full_path, "NEW_FILENAME", "NEW_FILEPATH")
-    assert result_new._config.filename == "NEW_FILENAME"
-    assert result_new._config.filepath == "NEW_FILEPATH"
+    result_new = results.Results.from_csv(full_path, "NEW_FILENAME", tmp_path)
+    assert result_new._filename == "NEW_FILENAME"
+    assert result_new._filepath == tmp_path
 
 
 def test_results_remove_bpms_works_as_expected():
@@ -69,11 +69,7 @@ def test_results_remove_bpms_works_as_expected():
 
 
 def test_from_csv_raises_exception_if_new_filename_same_as_old_filename(tmp_path):
-    """Create a metadata json file using the config supplied. Create a dummy matrix and
-    write it to a csv file in the same directory specified by config. Attempt to make 
-    a new Results object from the same csb file we just made. However because we specified
-    the new filename and filepath to be the same as the old one, when it tries to make this
-    new csv file it will report this issue and raise an exception."""
+    # Create initial Results data and directory from empty numpy array
     config_sim.filepath = str(tmp_path)
     metadata = configuration.Metadata(config_sim)
     latticemodel = lattice.LatticeModel(config_sim)
@@ -85,19 +81,17 @@ def test_from_csv_raises_exception_if_new_filename_same_as_old_filename(tmp_path
         )
     )
     result_old = results.Results(config_sim, matrix)
+    # Write initial Results data to csv
     result_old.write_csv()
     foldername = f"RM-{result_old._config.filename}"
     old_path = os.path.join(tmp_path, foldername)
     with pytest.raises(results.NewFilenameRequired):
+        # Attempt to create new Results data and directory from the created csv file
         results.Results.from_csv(old_path, config_sim.filename, config_sim.filepath)
 
 
-def test_from_csv_returns_results_if_new_filename_different_to_old_filename(tmp_path):
-    """Create new Results object by creating a config and writing it to a json file. Then
-    create some dummy data and write a csv file to the same directory. Then load the csv
-    file from this directory and create a new Results object. Check that they have the same
-    config options (which have been loaded from the json file that was earlier created)... 
-    except for the filename and filepath which must be different."""
+def test_from_csv_creates_new_Results_data_correctly(tmp_path):
+    # Create initial Results data and directory from empty numpy array
     config_sim.filepath = str(tmp_path)
     metadata = configuration.Metadata(config_sim)
     latticemodel = lattice.LatticeModel(config_sim)
@@ -109,11 +103,41 @@ def test_from_csv_returns_results_if_new_filename_different_to_old_filename(tmp_
         )
     )
     result_old = results.Results(config_sim, matrix)
+    # Write initial Results data to csv
     result_old.write_csv()
     foldername = f"RM-{result_old._config.filename}"
     full_path = os.path.join(tmp_path, foldername)
-    result_new = results.Results.from_csv(full_path, "New_Filename", "./")
-    assert result_new._config.filename != result_old._config.filename
-    assert (
-        replace(result_new._config, filename=config_sim_filename, filepath=str(tmp_path)) == result_old._config
+     # Attempt to create new Results data and directory from the created csv file
+    result_new = results.Results.from_csv(full_path, "New_Filename", tmp_path)
+    assert result_new._filename != result_old._config.filename
+    assert result_new._filepath != result_old._config.filepath
+
+def test_splitting_of_old_results_data_into_new_filepath(tmp_path):
+    # Create initial Results data and directory from empty numpy array
+    config_sim.filepath = str(tmp_path)
+    metadata = configuration.Metadata(config_sim)
+    latticemodel = lattice.LatticeModel(config_sim)
+    metadata.write_json()
+    matrix = np.zeros(
+        shape=(
+            len(latticemodel.bpm) * 2,
+            len(latticemodel.hstr) + len(latticemodel.vstr),
+        )
     )
+    result_old = results.Results(config_sim, matrix)
+    # Write initial Results data to csv
+    result_old.write_csv()
+    foldername = f"RM-{result_old._config.filename}"
+    full_path = os.path.join(tmp_path, foldername)
+    new_filename = "New_Filename"
+     # Attempt to create new Results data and directory from the created csv file
+    result_new = results.Results.from_csv(full_path, new_filename, tmp_path)
+    result_new.split()
+    result_new.plot(split=True)
+    for file in os.listdir(os.path.join(tmp_path, "RM-"+new_filename)):
+        file_found=False
+        # Look for one of the image plot files
+        if ("plot-yCxB" in file):
+            file_found = True
+            break
+    assert file_found
