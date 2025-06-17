@@ -37,3 +37,20 @@ Releases       https://github.com/DiamondLightSource/dls-response-matrix/release
     when included in index.rst
 
 See https://DiamondLightSource.github.io/dls-response-matrix for more detailed documentation.
+
+To create a new response matrix with default settings, run: 
+
+    dls_response_matrix
+
+To get commandline help, run: 
+
+    dls_response_matrix -h
+
+To load an existing response matrix csv and save the data to a new directory:
+From within a python venv:
+
+    >>> import dls_response_matrix
+    >>> old_data_path = "/path/to/existing/data/"
+    >>> results = dls_response_matrix.results.Results.from_csv(old_data_path, "new_name", "new/file/path/")
+    >>> results.split()
+    >>> results.plot(split=True)

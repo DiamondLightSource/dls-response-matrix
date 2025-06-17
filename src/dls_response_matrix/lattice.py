@@ -9,6 +9,7 @@ import cothread
 import numpy as np
 import pytac
 from pytac import cothread_cs
+from pytac.exceptions import ControlSystemException
 
 from dls_response_matrix.configuration import Config
 from dls_response_matrix.results import Results
@@ -67,27 +68,30 @@ class LatticeModel:
                 and vertically.
         """
         if remove_correctors:
-            log.info("Removing disabled correctors")
-            hstr_array = self._lattice.get_element_values("HSTR", "h_sofb_disabled")
-            vstr_array = self._lattice.get_element_values("VSTR", "v_sofb_disabled")
+            try:
+                log.info("Removing disabled correctors")
+                hstr_array = self._lattice.get_element_values("HSTR", "h_sofb_disabled")
+                vstr_array = self._lattice.get_element_values("VSTR", "v_sofb_disabled")
 
-            disabled_hstr_index = [
-                index for index, element in enumerate(hstr_array) if element == 1.0
-            ]
-            disabled_vstr_index = [
-                index for index, element in enumerate(vstr_array) if element == 1.0
-            ]
+                disabled_hstr_index = [
+                    index for index, element in enumerate(hstr_array) if element == 1.0
+                ]
+                disabled_vstr_index = [
+                    index for index, element in enumerate(vstr_array) if element == 1.0
+                ]
 
-            self.hstr = [
-                element
-                for index, element in enumerate(self.hstr)
-                if index not in disabled_hstr_index
-            ]
-            self.vstr = [
-                element
-                for index, element in enumerate(self.vstr)
-                if index not in disabled_vstr_index
-            ]
+                self.hstr = [
+                    element
+                    for index, element in enumerate(self.hstr)
+                    if index not in disabled_hstr_index
+                ]
+                self.vstr = [
+                    element
+                    for index, element in enumerate(self.vstr)
+                    if index not in disabled_vstr_index
+                ]
+            except ControlSystemException as e:
+                raise ControlSystemException("Channel access request failed, is the slow_orbit_feedbacks IOC running?") from e
         else:
             disabled_hstr_index, disabled_vstr_index = [-1], [-1]
         return (disabled_hstr_index, disabled_vstr_index)

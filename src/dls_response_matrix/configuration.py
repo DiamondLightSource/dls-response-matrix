@@ -1,5 +1,6 @@
 """configuration.py includes all classes and functions related to
 Config and Metadata."""
+
 from __future__ import annotations
 
 import json
@@ -21,12 +22,18 @@ DELTA_LIMITS = {
 """Dictionary containing the completed information for ENG or PHYS units."""
 
 MachineSetup: NamedTuple = NamedTuple(
-    "MachineSetup", [("time_delay", float), ("port", str)]
+    "MachineSetup",
+    [
+        ("max_time_delay", float),
+        ("min_time_delay", float),
+        ("default_time_delay", float),
+        ("port", str),
+    ],
 )
 """The base structure containing the time delay and port."""
 MACHINE_SETUP: dict = {
-    "SIM": MachineSetup(1.2, "6064"),
-    "LIVE": MachineSetup(0.25, "5054"),
+    "SIM": MachineSetup(5, 0.5, 0.5, "8064"),
+    "LIVE": MachineSetup(1, 0.1, 0.25, "5064"),
 }
 """Dictionary containing the completed information for the SIM or LIVE machine."""
 
@@ -36,6 +43,7 @@ class Config:
     """Config class stores commonly used configuration data."""
 
     filename: str = ""
+    filepath: str = ""
     iso_time: str = ""
     pytac_unit: str = ""
     ring_mode: str = ""
@@ -47,11 +55,13 @@ class Config:
     def get_configuration(
         cls,
         filename: str,
+        filepath: str,
         iso_time: str,
         pytac_unit: str,
         ring_mode: str,
         machine_type: str,
         proposed_delta: float,
+        proposed_delay: float,
     ):
         """Initialise the standard configuration object.
 
@@ -61,7 +71,8 @@ class Config:
         Args:
             filename: The filename prefix of the generated files. Defaults to the
                 current ISO time.
-            iso_time: ISO 8601 time.
+            filepath: The path to the directory to save the data. Defaults to the
+                python module top directory.
             pytac_unit: The unit type as found in pytac.
             ring_mode: The name of the desired ringmode.
             machine_type: The machine type, either "SIM" for simulation or "LIVE"
@@ -72,14 +83,11 @@ class Config:
         Returns:
             The Config object.
         """
-        if filename is None:
-            filename = iso_time
-        log.info(f"Filename: {filename}, Iso Time: {iso_time}.")
-
         delta, pytac_formatted = cls._check_limits(proposed_delta, pytac_unit)
-        time_delay = cls._machine_setup(machine_type)
+        time_delay = cls._machine_setup(proposed_delay, machine_type)
         return cls(
             filename,
+            filepath,
             iso_time,
             pytac_formatted,
             ring_mode,
@@ -114,12 +122,14 @@ class Config:
             )
 
         if proposed_delta == 0.0:
+            log.info(f"Using default delta: {delta_limits.default}.")
             return delta_limits.default, delta_limits.pytac
-        log.info(f"Delta: {proposed_delta}.")
+
+        log.info(f"Using delta: {proposed_delta}.")
         return proposed_delta, delta_limits.pytac
 
     @classmethod
-    def _machine_setup(cls, machine_type: str) -> float:
+    def _machine_setup(cls, proposed_delay: float, machine_type: str) -> float:
         """Set up time delay and port.
 
         Args:
@@ -129,19 +139,58 @@ class Config:
         Returns:
             The delay between each corrector step in seconds.
         """
-        time_delay, port = MACHINE_SETUP[machine_type]
-        cls._configure_port(port)
+        max, min, default, expected_port = MACHINE_SETUP[machine_type]
+        if proposed_delay is None:
+            time_delay = default
+            log.info(f"Setting step delay to default {default}")
+        elif proposed_delay > max or proposed_delay < min:
+            raise ValueError(
+                f"User requested time delay {proposed_delay} is out of "
+                f"allowed range: {min}-{max} seconds"
+            )
+        else:
+            time_delay = proposed_delay
+            log.info(f"Setting step delay to {proposed_delay}")
+        cls._check_CA_ports(machine_type)
         return time_delay
 
     @staticmethod
-    def _configure_port(port: str):
+    def _check_CA_ports(machine_type: str):
         """Set up the Channel Access Port.
 
         Args:
             port: The port number.
         """
-        os.environ["EPICS_CA_SERVER_PORT"] = port
-        log.debug(f"'EPICS_CA_SERVER_PORT' set to {port}")
+        expected_ca_addr_port = MACHINE_SETUP[machine_type][3]
+        try:
+            server_port = os.environ["EPICS_CA_SERVER_PORT"]
+            repeater_port = os.environ["EPICS_CA_REPEATER_PORT"]
+            if machine_type != "LIVE" and server_port == str(5064):
+                raise ValueError(
+                    "CA server port set to 5064, but machine_type is not LIVE. "
+                    "Only use port 5064 when running against the LIVE machine"
+                )
+            if machine_type != "LIVE" and repeater_port == str(5065):
+                raise ValueError(
+                    "CA server port set to 5064, but machine_type is not LIVE. "
+                    "Only use port 5064 when running against the LIVE machine"
+                )
+            if machine_type == "SIM" and server_port != expected_ca_addr_port:
+                log.warning(
+                    f"VIRTAC simulation is normally done on CA port {expected_ca_addr_port}, "
+                    f"but your CA server port is set to {server_port}. Is this okay?"
+                )
+            if machine_type == "SIM" and repeater_port != str(
+                int(expected_ca_addr_port) + 1
+            ):
+                log.warning(
+                    f"VIRTAC simulation is normally done on CA port {str(int(expected_ca_addr_port) + 1)}, "
+                    f"but your CA repeater port is set to {repeater_port}. Is this okay?"
+                )
+        except KeyError as e:
+            raise ValueError("EPICS CA variables not set!") from e
+        log.info(f"Using 'EPICS_CA_SERVER_PORT' {server_port}")
+        log.info(f"Using 'EPICS_CA_REPEATER_PORT' {repeater_port}")
 
 
 @dataclass
@@ -166,7 +215,7 @@ class Metadata:
     )
     """initial: The initial setpoints of all correctors."""
 
-    def write_json(self, folderpath: Optional[str] = None):
+    def write_json(self):
         """Write the metadata to a .json file.
 
         Args:
@@ -176,6 +225,7 @@ class Metadata:
         dictionary = {
             # Main metadata.
             "Filename": self.config.filename,
+            "Filepath": self.config.filepath,
             "ISO time": self.config.iso_time,
             "Ring Mode": self.config.ring_mode,
             "Machine type": self.config.machine_type,
@@ -190,14 +240,14 @@ class Metadata:
             "Initial HSTR, VSTR:": self.initial,
         }
 
-        cwd = os.getcwd() if folderpath is None else folderpath
-        foldername = f"RM-{self.config.iso_time}"
+        filepath = self.config.filepath if self.config.filepath is not None else os.getcwd()
+        foldername = f"RM-{self.config.filename}"
         filename = f"metadata-{self.config.filename}.json"
 
-        os.makedirs(os.path.join(cwd, foldername), exist_ok=True)
+        os.makedirs(os.path.join(filepath, foldername), exist_ok=True)
 
         with open(
-            f"{os.path.join(cwd, foldername, filename)}",
+            f"{os.path.join(filepath, foldername, filename)}",
             "w",
         ) as outfile:
             json.dump(dictionary, outfile, indent=4, ensure_ascii=False)

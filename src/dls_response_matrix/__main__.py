@@ -1,7 +1,7 @@
 from argparse import ArgumentParser
 
 from dls_response_matrix.respm_app import start_gui
-from dls_response_matrix.response_matrix import DEFAULT_MACHINE_MODE, response_matrix
+from dls_response_matrix.response_matrix import DEFAULT_MACHINE_MODE, response_matrix, get_ring_modes
 
 from . import __version__
 
@@ -9,8 +9,10 @@ __all__ = ["main"]
 
 HELP_INFO = {
     "filename": "The filename for the saved files. Default is the ISO time.",
+    "filepath": "The path to the directory where the files should be saved. Default is cwd",
     "ring-mode": "The ring mode of the model. Default is I04",
     "proposed-delta": "The proposed delta to vary correctors by.",
+    "proposed-delay": "The proposed time delay to wait between each magnet kick.",
     "pytac-unit": (
         "The units for the model. Toggles between pytac.ENG (default) and pytac.PHYS"
         " units."
@@ -28,14 +30,22 @@ def parse_arguments():
     parser.add_argument(
         "--filename",
         "-f",
+        type=str,
         default=None,
         help=HELP_INFO["filename"],
+    )
+    parser.add_argument(
+        "--filepath",
+        "-p",
+        type=str,
+        default=None,
+        help=HELP_INFO["filepath"],
     )
     parser.add_argument(
         "--ring-mode",
         "-r",
         type=str,
-        default=DEFAULT_MACHINE_MODE,
+        default=get_ring_modes()[1],
         help=HELP_INFO["ring-mode"],
     )
     parser.add_argument(
@@ -44,6 +54,13 @@ def parse_arguments():
         type=float,
         default=0.0,
         help=HELP_INFO["proposed-delta"],
+    )
+    parser.add_argument(
+        "--proposed-delay",
+        "-t",
+        type=float,
+        default=None,
+        help=HELP_INFO["proposed-delay"],
     )
     parser.add_argument(
         "--pytac-unit",
@@ -86,8 +103,10 @@ def main(args=None):
     args = parse_arguments()
     response_matrix(
         args.filename,
+        args.filepath,
         args.ring_mode,
         args.proposed_delta,
+        args.proposed_delay,
         args.pytac_unit,
         args.machine_type,
         args.remove_correctors,
