@@ -1,0 +1,10 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: dls-response-matrix
+  title: dls-response-matrix
+  description: Calculate the response matrix by kicking individual corrector magnets and reading bpm data.
+spec:
+  type: documentation
+  lifecycle: experimental
+  owner: user:zrv91478

@@ -1,0 +1,15 @@
+# Changes here will be overwritten by Copier
+_commit: 1.0.0
+_src_path: https://github.com/DiamondLightSource/python-copier-template.git
+author_email: philip.smith@diamond.ac.uk
+author_name: Phil Smith
+component_owner: user:zrv91478
+description: Calculate the response matrix by kicking individual corrector magnets
+    and reading bpm data.
+distribution_name: dls-response-matrix
+docker: true
+docs_type: README
+git_platform: github.com
+github_org: DiamondLightSource
+package_name: dls_response_matrix
+repo_name: dls-response-matrix
