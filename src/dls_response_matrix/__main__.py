@@ -1,7 +1,11 @@
 from argparse import ArgumentParser
 
 from dls_response_matrix.respm_app import start_gui
-from dls_response_matrix.response_matrix import DEFAULT_MACHINE_MODE, response_matrix, get_ring_modes
+from dls_response_matrix.response_matrix import (
+    DEFAULT_MACHINE_MODE,
+    get_ring_modes,
+    response_matrix,
+)
 
 from . import __version__
 
@@ -124,6 +128,10 @@ def parse_gui_arguments():
 def gui_main():
     parse_gui_arguments()  # Only used for version
     start_gui(HELP_INFO)
+
+
+if __name__ == "__main__":
+    main()
 
 
 if __name__ == "__main__":
