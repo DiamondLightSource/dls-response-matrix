@@ -66,7 +66,7 @@ class Results:
             raise FileExistsError(f"Folder {new_filepath} does not exists.")
 
         if new_filepath is not None:
-            self._filepath: str = new_filepath
+            self._filepath = new_filepath
             if new_filename is not None:
                 self._filename = new_filename
                 os.mkdir(f"{new_filepath}/RM-{new_filename}")
