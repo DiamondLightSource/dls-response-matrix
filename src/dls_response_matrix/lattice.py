@@ -175,7 +175,7 @@ class LatticeModel:
                 )
                 raise BeamPositionMonitorException(
                     f"Failed to retrieve bpm values {MAX_BPM_ATTEMPTS} times:\n{e}"
-                )
+                ) from e
             else:
                 break
         return bpm_x + bpm_y

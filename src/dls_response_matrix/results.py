@@ -169,7 +169,7 @@ class Results:
         """
         log.info("Removed inactive bpms.")
         # X bpms
-        _disabled_bpm_list = [index for index in disabled_bpms]
+        _disabled_bpm_list = list(disabled_bpms)
         # Y bpms
         _disabled_bpm_list.extend([x_bpms + index for index in disabled_bpms])
 
