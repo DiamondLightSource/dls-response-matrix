@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import os
+from dataclasses import dataclass
 from pathlib import Path
 
 import cothread
 from PyQt6 import uic
-from PyQt6.QtWidgets import QMainWindow, QFileDialog
+from PyQt6.QtWidgets import QFileDialog, QMainWindow
 
 from dls_response_matrix.configuration import DELTA_LIMITS, MACHINE_SETUP
 from dls_response_matrix.response_matrix import (
@@ -81,7 +81,7 @@ class MainWindow(QMainWindow):
         self.proposed_delta_input.setMinimum(minimum)
         self.proposed_delta_input.setValue(default)
         self.proposed_delta_input.setSingleStep(0.1)
-        
+
         maximum, minimum, default, port = MACHINE_SETUP[
             self.machine_type_input.currentText()
         ]
@@ -99,13 +99,10 @@ class MainWindow(QMainWindow):
 
     def open_file_dialog(self):
         directory = QFileDialog.getExistingDirectory(
-            self,
-            "Select a File",
-            f"{os.getcwd()}"
+            self, "Select a File", f"{os.getcwd()}"
         )
         self.filepath_input.setText(directory)
-        
-        
+
     def button_pressed(self):
         defs = self.get_current_args()
         if defs.filename == "":

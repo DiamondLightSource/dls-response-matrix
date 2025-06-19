@@ -1,5 +1,4 @@
 import os
-from dataclasses import replace
 
 import numpy as np
 import pytest
@@ -107,10 +106,11 @@ def test_from_csv_creates_new_Results_data_correctly(tmp_path):
     result_old.write_csv()
     foldername = f"RM-{result_old._config.filename}"
     full_path = os.path.join(tmp_path, foldername)
-     # Attempt to create new Results data and directory from the created csv file
+    # Attempt to create new Results data and directory from the created csv file
     result_new = results.Results.from_csv(full_path, "New_Filename", tmp_path)
     assert result_new._filename != result_old._config.filename
     assert result_new._filepath != result_old._config.filepath
+
 
 def test_splitting_of_old_results_data_into_new_filepath(tmp_path):
     # Create initial Results data and directory from empty numpy array
@@ -130,14 +130,14 @@ def test_splitting_of_old_results_data_into_new_filepath(tmp_path):
     foldername = f"RM-{result_old._config.filename}"
     full_path = os.path.join(tmp_path, foldername)
     new_filename = "New_Filename"
-     # Attempt to create new Results data and directory from the created csv file
+    # Attempt to create new Results data and directory from the created csv file
     result_new = results.Results.from_csv(full_path, new_filename, tmp_path)
     result_new.split()
     result_new.plot(split=True)
-    for file in os.listdir(os.path.join(tmp_path, "RM-"+new_filename)):
-        file_found=False
+    for file in os.listdir(os.path.join(tmp_path, "RM-" + new_filename)):
+        file_found = False
         # Look for one of the image plot files
-        if ("plot-yCxB" in file):
+        if "plot-yCxB" in file:
             file_found = True
             break
     assert file_found

@@ -6,8 +6,9 @@ from __future__ import annotations
 import json
 import logging as log
 import os
+from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Any, NamedTuple, Optional, Sequence, Tuple
+from typing import Any, NamedTuple
 
 import pytac
 
@@ -97,7 +98,7 @@ class Config:
         )
 
     @staticmethod
-    def _check_limits(proposed_delta: float, pytac_unit: str) -> Tuple[float, str]:
+    def _check_limits(proposed_delta: float, pytac_unit: str) -> tuple[float, str]:
         """Check the proposed delta is within the approved limits.
 
         Args:
@@ -177,15 +178,17 @@ class Config:
                 )
             if machine_type == "SIM" and server_port != expected_ca_addr_port:
                 log.warning(
-                    f"VIRTAC simulation is normally done on CA port {expected_ca_addr_port}, "
-                    f"but your CA server port is set to {server_port}. Is this okay?"
+                    f"VIRTAC simulation is normally done on CA port "
+                    f"{expected_ca_addr_port}, but your CA server port is set to "
+                    f"{server_port}. Is this okay?"
                 )
             if machine_type == "SIM" and repeater_port != str(
                 int(expected_ca_addr_port) + 1
             ):
                 log.warning(
-                    f"VIRTAC simulation is normally done on CA port {str(int(expected_ca_addr_port) + 1)}, "
-                    f"but your CA repeater port is set to {repeater_port}. Is this okay?"
+                    f"VIRTAC simulation is normally done on CA port "
+                    f"{str(int(expected_ca_addr_port) + 1)}, but your CA "
+                    f"repeater port is set to {repeater_port}. Is this okay?"
                 )
         except KeyError as e:
             raise ValueError("EPICS CA variables not set!") from e
@@ -205,13 +208,13 @@ class Metadata:
     # Initial and disabled states.
     # Initial and disabled states.
     disabled_correctors: tuple[Sequence[Any], Sequence[Any]] = field(
-        default_factory=lambda: (list(), list())
+        default_factory=lambda: ([], [])
     )
     """disabled_correctors: Lattice indices of disabled correctors."""
     disabled_bpms: list[int] = field(default_factory=list)
     """disabled_bpms: Lattice indices of disabled BPMs."""
     initial: tuple[Sequence[Any], Sequence[Any]] = field(
-        default_factory=lambda: (list(), list())
+        default_factory=lambda: ([], [])
     )
     """initial: The initial setpoints of all correctors."""
 
@@ -240,7 +243,9 @@ class Metadata:
             "Initial HSTR, VSTR:": self.initial,
         }
 
-        filepath = self.config.filepath if self.config.filepath is not None else os.getcwd()
+        filepath = (
+            self.config.filepath if self.config.filepath is not None else os.getcwd()
+        )
         foldername = f"RM-{self.config.filename}"
         filename = f"metadata-{self.config.filename}.json"
 

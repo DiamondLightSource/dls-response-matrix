@@ -5,7 +5,7 @@ import logging as log
 import os
 from datetime import datetime
 
-from cothread.catools import FORMAT_CTRL, caget, ca_nothing
+from cothread.catools import FORMAT_CTRL, ca_nothing, caget
 
 from dls_response_matrix.configuration import Config, Metadata
 from dls_response_matrix.lattice import LatticeModel
@@ -39,17 +39,21 @@ def get_ring_modes() -> tuple[list, str]:
             "SR-CS-RING-01:MODE", format=FORMAT_CTRL, throw=True
         ).enums
         current_ringmode = caget("SR-CS-RING-01:MODE", datatype=str, throw=True)
-    except ca_nothing as e:
+    except ca_nothing:
         ring_mode_list = [DEFAULT_MACHINE_MODE]
         current_ringmode = DEFAULT_MACHINE_MODE
         log.warning(
-            f"Timeout while searching for PV SR-CS-RING-01:MODE. Using default ring_mode {DEFAULT_MACHINE_MODE}"
+            f"Timeout while searching for PV SR-CS-RING-01:MODE. Using default "
+            f"ring_mode {DEFAULT_MACHINE_MODE}"
         )
     return ring_mode_list, current_ringmode
 
 
 def get_new_logger(
-    filename: str, filepath: str, console_log_level: int = log.INFO, file_log_level: int = log.DEBUG
+    filename: str,
+    filepath: str,
+    console_log_level: int = log.INFO,
+    file_log_level: int = log.DEBUG,
 ):
     """Initialise and setup the logger.
 
@@ -84,6 +88,7 @@ def get_new_logger(
 
     log.info(f"Saving data to: {full_path}")
 
+
 def response_matrix(
     filename: str,
     filepath: str,
@@ -101,7 +106,7 @@ def response_matrix(
     # Timing setup.
     start = datetime.now()
     iso_time = start.strftime(ISO_TIME_FORMAT_STRING)
-    
+
     # Check filename and filepath are valid
     if filename is None:
         filename = iso_time
@@ -110,7 +115,7 @@ def response_matrix(
         filepath = os.getcwd()
     elif not os.path.isdir(filepath):
         raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), filepath)
-    
+
     get_new_logger(filename, filepath)
 
     # Config setup.
