@@ -132,7 +132,3 @@ def gui_main():
 
 if __name__ == "__main__":
     main()
-
-
-if __name__ == "__main__":
-    main()
