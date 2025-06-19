@@ -29,8 +29,8 @@ class Results:
         self,
         config: Config,
         matrix: np.ndarray,
-        new_filename: str = None,
-        new_filepath: str = None,
+        new_filename: str | None = None,
+        new_filepath: str | None = None,
     ):
         """Setup of the Results class.
 
@@ -91,8 +91,8 @@ class Results:
         x_correctors: int,
         y_correctors: int,
         bpms: int,
-        new_filename: str = None,
-        new_filepath: str = None,
+        new_filename: str | None = None,
+        new_filepath: str | None = None,
     ):
         """Create a matrix of the appropriate size for the Results object.
 
@@ -112,8 +112,8 @@ class Results:
     def from_csv(
         cls,
         full_folderpath: str,
-        new_filename: str = None,
-        new_filepath: str = None,
+        new_filename: str | None = None,
+        new_filepath: str | None = None,
     ):
         """Load and setup the Results object when given a valid folderpath.
 
