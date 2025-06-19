@@ -7,6 +7,7 @@ FROM python:${PYTHON_VERSION} AS developer
 RUN apt-get update && apt-get upgrade -y && \
     apt-get install -y --no-install-recommends \
     libqt5gui5 \
+    libxcb-cursor0 \
     && rm -rf /var/lib/apt/lists/*
 
 # Set up a virtual environment and put it in PATH
@@ -19,7 +20,7 @@ ENV EPICS_CA_REPEATER_PORT=8065
 FROM developer AS build
 COPY . /context
 WORKDIR /context
-RUN touch dev-requirements.txt && pip install -c dev-requirements.txt .
+RUN touch dev-requirements.txt && pip install --upgrade pip && pip install -c dev-requirements.txt .
 
 # The runtime stage copies the built venv into a slim runtime container
 FROM python:${PYTHON_VERSION}-slim AS runtime
@@ -27,6 +28,7 @@ FROM python:${PYTHON_VERSION}-slim AS runtime
 RUN apt-get update && apt-get upgrade -y && \
     apt-get install -y --no-install-recommends \
     libqt5gui5 \
+    libxcb-cursor0 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /venv/ /venv/
