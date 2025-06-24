@@ -7,6 +7,8 @@
 
 Generate storage ring response matrix by kicking individual corrector magnets and reading bpm data.
 
+Python>3.10 is currently not supported due to a bug in cothreads! 20/6/25
+
 This module is used to generate a response matrix (RM) for the Diamond storage ring. It only requires a channel access 
 connection to corrector magnets and bpms for the most basic usage. It is considered a slow method of calculating an RM
 and takes ~11 minutes. For a faster version ~1 minute see the ploco-excite functionality of 
