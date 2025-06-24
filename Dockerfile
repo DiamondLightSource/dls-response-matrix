@@ -6,8 +6,7 @@ FROM python:${PYTHON_VERSION} AS developer
 # Add any system dependencies for the developer/build environment here
 RUN apt-get update && apt-get upgrade -y && \
     apt-get install -y --no-install-recommends \
-    libqt5gui5 \
-    libxcb-cursor0 \
+    libqt6gui6 libgl1 libxcb-cursor0 libgles2-mesa-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Set up a virtual environment and put it in PATH
@@ -27,8 +26,7 @@ FROM python:${PYTHON_VERSION}-slim AS runtime
 # Add apt-get system dependecies for runtime here if needed
 RUN apt-get update && apt-get upgrade -y && \
     apt-get install -y --no-install-recommends \
-    libqt5gui5 \
-    libxcb-cursor0 \
+    libqt6gui6 libgl1 libxcb-cursor0 libgles2-mesa-dev \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /venv/ /venv/

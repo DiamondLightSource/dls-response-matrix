@@ -39,7 +39,7 @@ jobs:
           tags: tag_for_testing
 
       - name: Test cli works in cached runtime image
-        run: docker run --rm tag_for_testing --version
+        run: docker run -e QT_QPA_PLATFORM=offscreen --rm tag_for_testing --version
 
       - name: Create tags for publishing image
         id: meta
