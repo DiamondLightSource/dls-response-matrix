@@ -7,7 +7,6 @@ import json
 import logging as log
 import os
 import shutil
-from typing import Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -28,10 +27,10 @@ class Results:
 
     def __init__(
         self,
-        config:Config,
+        config: Config,
         matrix: np.ndarray,
-        new_filename: str = None,
-        new_filepath: str = None
+        new_filename: str | None = None,
+        new_filepath: str | None = None,
     ):
         """Setup of the Results class.
 
@@ -51,23 +50,24 @@ class Results:
         if new_filename is not None or new_filepath is not None:
             self._create_new_data_dir(new_filename, new_filepath)
 
-
-    def _create_new_data_dir(self, new_filename = None, new_filepath = None):
-        """Check that the new folderpath exists and is not the same as the one specified in the config.
-           If it exists, then create a new RM- subdirectory."""
+    def _create_new_data_dir(self, new_filename=None, new_filepath=None):
+        """Check that the new folderpath exists and is not the same as the one specified
+        in the config. If it exists, then create a new RM- subdirectory."""
         new_filename = self._config.filename if new_filename is None else new_filename
         new_filepath = self._config.filepath if new_filepath is None else new_filepath
 
-        if os.path.join(self._config.filepath, self._config.filename) == os.path.join(new_filepath, new_filename):
+        if os.path.join(self._config.filepath, self._config.filename) == os.path.join(
+            new_filepath, new_filename
+        ):
             raise NewFilenameRequired(
                 "New file name and path cannot be the same as old file name and path."
             )
         elif not os.path.exists(new_filepath):
             raise FileExistsError(f"Folder {new_filepath} does not exists.")
-        
-        if (new_filepath is not None):
-            self._filepath: str = new_filepath
-            if (new_filename is not None):
+
+        if new_filepath is not None:
+            self._filepath = new_filepath
+            if new_filename is not None:
                 self._filename = new_filename
                 os.mkdir(f"{new_filepath}/RM-{new_filename}")
             else:
@@ -80,10 +80,9 @@ class Results:
             src = os.path.join(self._config.filepath, old_foldername, old_filename)
 
             new_foldername = f"RM-{self._filename}"
-            new_filename = f"rawdata-full-{self._filename}.csv"  
+            new_filename = f"rawdata-full-{self._filename}.csv"
             dst = os.path.join(self._filepath, new_foldername, new_filename)
             shutil.copyfile(src, dst)
-
 
     @classmethod
     def from_corrector_info(
@@ -92,8 +91,8 @@ class Results:
         x_correctors: int,
         y_correctors: int,
         bpms: int,
-        new_filename: str = None,
-        new_filepath: str = None,
+        new_filename: str | None = None,
+        new_filepath: str | None = None,
     ):
         """Create a matrix of the appropriate size for the Results object.
 
@@ -113,8 +112,8 @@ class Results:
     def from_csv(
         cls,
         full_folderpath: str,
-        new_filename: str = None,
-        new_filepath: str = None,
+        new_filename: str | None = None,
+        new_filepath: str | None = None,
     ):
         """Load and setup the Results object when given a valid folderpath.
 
@@ -170,7 +169,7 @@ class Results:
         """
         log.info("Removed inactive bpms.")
         # X bpms
-        _disabled_bpm_list = [index for index in disabled_bpms]
+        _disabled_bpm_list = list(disabled_bpms)
         # Y bpms
         _disabled_bpm_list.extend([x_bpms + index for index in disabled_bpms])
 
@@ -188,7 +187,7 @@ class Results:
             self._matrix,
         )
 
-    def plot(self, split: Optional[bool] = False):
+    def plot(self, split: bool | None = False):
         """Plot the matrix.
 
         Args:
@@ -206,7 +205,9 @@ class Results:
         for plot_name in names:
             csv_filename = f"rawdata-{plot_name}-{self._filename}.csv"
             plot_filename = f"plot-{plot_name}-{self._filename}.png"
-            matrix = np.genfromtxt(os.path.join(self._filepath, foldername, csv_filename))
+            matrix = np.genfromtxt(
+                os.path.join(self._filepath, foldername, csv_filename)
+            )
 
             plt.imshow(matrix, "RdBu", norm=TwoSlopeNorm(vcenter=0))
             plt.xlim([-1, np.shape(matrix)[1]])

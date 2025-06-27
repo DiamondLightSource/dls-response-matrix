@@ -56,6 +56,7 @@ cov.xml
 
 # Sphinx documentation
 docs/_build/
+docs/_api
 
 # PyBuilder
 target/
@@ -67,6 +68,8 @@ venv*
 # further build artifacts
 lockfiles/
 
+# ruff cache
+.ruff_cache/
+
 # built response matrices
 RM-*/
-

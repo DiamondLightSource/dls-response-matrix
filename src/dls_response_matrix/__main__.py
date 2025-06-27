@@ -1,7 +1,10 @@
 from argparse import ArgumentParser
 
 from dls_response_matrix.respm_app import start_gui
-from dls_response_matrix.response_matrix import DEFAULT_MACHINE_MODE, response_matrix, get_ring_modes
+from dls_response_matrix.response_matrix import (
+    get_ring_modes,
+    response_matrix,
+)
 
 from . import __version__
 
@@ -9,7 +12,8 @@ __all__ = ["main"]
 
 HELP_INFO = {
     "filename": "The filename for the saved files. Default is the ISO time.",
-    "filepath": "The path to the directory where the files should be saved. Default is cwd",
+    "filepath": "The path to the directory where the files should be saved. "
+    "Default is cwd",
     "ring-mode": "The ring mode of the model. Default is I04",
     "proposed-delta": "The proposed delta to vary correctors by.",
     "proposed-delay": "The proposed time delay to wait between each magnet kick.",

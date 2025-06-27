@@ -4,7 +4,7 @@ from unittest import mock
 
 import pytest
 
-from dls_response_matrix import configuration, response_matrix
+from dls_response_matrix import configuration
 
 TEST_FILE_NAME = "TEST FILE NAME"
 TEST_FILE_PATH = "/TEST/FILE/PATH"
@@ -56,7 +56,7 @@ def test_check_CA_ports_raises_error_when_machine_type_is_SIM_and_addr_port_is_5
         configuration.Config._check_CA_ports(machine_type)
 
 
-def test_check_CA_ports_raises_error_when_machine_type_is_SIM_and_repeater_port_is_5065():
+def test_check_CA_ports_raises_error_when_machine_type_is_SIM_and_repeater_port_is_5065():  # noqa: E501
     repeater_port_name = "EPICS_CA_REPEATER_PORT"
     machine_type = "SIM"
     port = 5065
@@ -65,7 +65,7 @@ def test_check_CA_ports_raises_error_when_machine_type_is_SIM_and_repeater_port_
         configuration.Config._check_CA_ports(machine_type)
 
 
-def test_check_CA_ports_does_not_raise_error_when_machine_type_is_LIVE_and_port_is_8064():
+def test_check_CA_ports_does_not_raise_error_when_machine_type_is_LIVE_and_port_is_8064():  # noqa: E501
     port_name = "EPICS_CA_SERVER_PORT"
     sim_info = configuration.MACHINE_SETUP["SIM"]
     configuration.Config._check_CA_ports("SIM")

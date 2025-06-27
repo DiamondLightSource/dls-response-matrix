@@ -1,9 +1,11 @@
 """lattice.py includes all classes and functions related to the lattice
 and the response-matrix process."""
+
 from __future__ import annotations
 
 import logging as log
-from typing import Any, Callable, List, Optional, Sequence
+from collections.abc import Callable, Sequence
+from typing import Any
 
 import cothread
 import numpy as np
@@ -91,12 +93,15 @@ class LatticeModel:
                     if index not in disabled_vstr_index
                 ]
             except ControlSystemException as e:
-                raise ControlSystemException("Channel access request failed, is the slow_orbit_feedbacks IOC running?") from e
+                raise ControlSystemException(
+                    "Channel access request failed, is the slow_orbit_feedbacks IOC "
+                    "running?"
+                ) from e
         else:
             disabled_hstr_index, disabled_vstr_index = [-1], [-1]
         return (disabled_hstr_index, disabled_vstr_index)
 
-    def disable_bpms(self, remove_bpms: bool) -> List[int]:
+    def disable_bpms(self, remove_bpms: bool) -> list[int]:
         """Remove disabled bpms from the hstr and vstr lists
 
         This will return -1 if remove_bpms = False, to clearly show a difference
@@ -137,7 +142,7 @@ class LatticeModel:
         )
         return (hstr_values, vstr_values)
 
-    def measure_bpms(self) -> List:
+    def measure_bpms(self) -> list:
         """Measure all bpms in the lattice.
 
         Measure all BPMs (even disabled) for performance requirements. Attempts
@@ -170,7 +175,7 @@ class LatticeModel:
                 )
                 raise BeamPositionMonitorException(
                     f"Failed to retrieve bpm values {MAX_BPM_ATTEMPTS} times:\n{e}"
-                )
+                ) from e
             else:
                 break
         return bpm_x + bpm_y
@@ -178,7 +183,7 @@ class LatticeModel:
     def calculate_responses(
         self,
         results: Results,
-        progress_callback: Callable[[float], Optional[float]] = lambda x: None,
+        progress_callback: Callable[[float], float | None] = lambda x: None,
     ):
         """Run the response matrix process on each axis separately.
 
@@ -201,7 +206,7 @@ class LatticeModel:
         correctors: list,
         field: str,
         offset: int,
-        progress_callback: Callable[[float], Optional[float]] = lambda x: None,
+        progress_callback: Callable[[float], float | None] = lambda x: None,
     ):
         """Calculate the response matrix for a given set of correctors, by stepping
         each corrector by delta and measuring the change in beam position.

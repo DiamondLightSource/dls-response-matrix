@@ -1,0 +1,10 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: dls-response-matrix
+  title: dls-response-matrix
+  description: Generate storage ring response matrix by kicking individual corrector magnets and reading bpm data.
+spec:
+  type: service
+  lifecycle: production
+  owner: group:default/high-level-apps
