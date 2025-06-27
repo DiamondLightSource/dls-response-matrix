@@ -1,0 +1,22 @@
+﻿``dls_response_matrix``
+=======================
+
+.. automodule:: dls_response_matrix
+    :members:
+
+    
+    
+    .. rubric:: Submodules
+
+    .. autosummary::
+        :toctree:
+        :template: custom-module-template.rst
+        :recursive:
+    
+        response_matrix
+    
+    
+
+    
+    
+    
